@@ -35,6 +35,7 @@
     background:rgba(255,255,255,.15); overflow:hidden;
   }
   #eraTimerFill { height:100%; width:100%; background:#f7d774; transition: width .1s linear; }
+  #eraSeconds { font-size:11px; color:#9fb4c9; margin-top:2px; }
 
   #msg {
     position:absolute; top:38%; left:50%; transform:translate(-50%,-50%);
@@ -96,6 +97,7 @@
     <div id="eraBox">
       <div id="eraName">Matsya</div>
       <div id="eraTimerTrack"><div id="eraTimerFill"></div></div>
+      <div id="eraSeconds">26s</div>
     </div>
   </div>
 
@@ -151,6 +153,7 @@
   const restartBtn = document.getElementById('restartBtn');
   const eraNameEl = document.getElementById('eraName');
   const eraTimerFill = document.getElementById('eraTimerFill');
+  const eraSecondsEl = document.getElementById('eraSeconds');
   const transitionOverlay = document.getElementById('transitionOverlay');
   const tIcon = document.getElementById('tIcon');
   const tTitle = document.getElementById('tTitle');
@@ -214,7 +217,10 @@
 
     eraIndex = 0;
     eraCycle = 0;
-    unlockedTypes = new Set(); // obstacle types the player has already faced this run
+    // All three avatars are already unlocked in this prototype, so every
+    // obstacle type is in play from second one — era only weights which
+    // type shows up more, it doesn't gate which types can appear.
+    unlockedTypes = new Set(ERA_DEFS.map(e => e.obstacleType));
 
     msgEl.style.display = 'none';
     restartBtn.style.display = 'none';
@@ -236,6 +242,8 @@
 
     const era = currentEra();
     eraNameEl.textContent = AVATAR_META[era.avatar].label;
+    eraTimerFill.style.width = '100%';
+    eraSecondsEl.textContent = Math.ceil(eraDuration/1000) + 's';
     tIcon.textContent = AVATAR_META[era.avatar].icon;
     tTitle.textContent = era.title;
     tFact.textContent = era.fact;
@@ -326,13 +334,15 @@
     if(state !== 'playing') return;
 
     animT += dt;
-    distance += speed * dt * 0.06;
+    // ~15 m/s at starting speed, scaling with speed as the run accelerates
+    distance += speed * dt * 0.0035;
     speed += dt * 0.0008;
     scoreEl.textContent = Math.floor(distance) + 'm';
 
     eraElapsed += dt;
     const remain = Math.max(0, eraDuration - eraElapsed);
     eraTimerFill.style.width = Math.max(0, (remain/eraDuration)*100) + '%';
+    eraSecondsEl.textContent = Math.ceil(remain/1000) + 's';
 
     // signature moment: once, inside the last SIGNATURE_WINDOW ms
     if(!signatureSpawned && remain <= SIGNATURE_WINDOW && remain > SIGNATURE_WINDOW - 800){
