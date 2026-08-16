@@ -263,6 +263,14 @@
     signatureSpawned = false;
     unlockedTypes.add(currentEra().obstacleType);
 
+    // Clear any obstacle still in flight from the previous era. Without
+    // this, an uncleared obstacle (often the signature one, since it
+    // spawns near era end) freezes mid-screen during the transition
+    // overlay, then resumes the instant play resumes — sometimes already
+    // right on top of the player with no warning.
+    obstacles.length = 0;
+    lastSpawn = 0;
+
     const era = currentEra();
     eraNameEl.textContent = AVATAR_META[era.avatar].label;
     eraTimerFill.style.width = '100%';
