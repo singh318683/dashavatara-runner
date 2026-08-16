@@ -44,6 +44,14 @@
   }
   #langToggle:active { transform: scale(.94); }
   #eraBox { margin-top:24px; }
+  #storyCaption {
+    position:absolute; top:64px; left:50%; transform:translateX(-50%);
+    z-index:4; max-width:80%; text-align:center; pointer-events:none;
+    font-size:14px; font-style:italic; color:#f7d774;
+    text-shadow:0 2px 8px rgba(0,0,0,.8);
+    opacity:0; transition:opacity .5s ease;
+  }
+  #storyCaption.show { opacity:1; }
 
   #msg {
     position:absolute; top:38%; left:50%; transform:translate(-50%,-50%);
@@ -154,6 +162,7 @@
   <canvas id="game" width="900" height="400"></canvas>
 
   <button id="langToggle">हिं</button>
+  <div id="storyCaption"></div>
 
   <div id="hud">
     <div>
@@ -309,17 +318,32 @@
       deed:'Matsya guided Manu\u2019s boat, tied to the serpent Vasuki, safely through a cataclysmic flood \u2014 preserving all life, the seeds of every plant, and the Vedas themselves.',
       deedHi:'मत्स्य ने मनु की नाव को सर्प वासुकी से बाँधकर, एक भीषण प्रलय के बीच सुरक्षित मार्ग दिखाया — जिससे समस्त जीवन, हर पौधे के बीज और वेद सुरक्षित रह सके।',
       funFact:'In the earliest telling (the Shatapatha Brahmana), Matsya isn\u2019t yet an avatar of Vishnu at all \u2014 that link was added later, in the Puranas.',
-      funFactHi:'सबसे प्राचीन कथा (शतपथ ब्राह्मण) में मत्स्य अभी विष्णु के अवतार नहीं थे — यह संबंध बाद में पुराणों में जोड़ा गया।' },
+      funFactHi:'सबसे प्राचीन कथा (शतपथ ब्राह्मण) में मत्स्य अभी विष्णु के अवतार नहीं थे — यह संबंध बाद में पुराणों में जोड़ा गया।',
+      beats:[
+        { at:0.22, en:'The waters are rising fast...', hi:'जल तेज़ी से बढ़ रहा है...' },
+        { at:0.48, en:'Vasuki\u2019s coil holds the boat steady.', hi:'वासुकी की कुंडली नाव को स्थिर रखे हुए है।' },
+        { at:0.68, en:'The flood surges \u2014 hold your course!', hi:'बाढ़ उफान पर है — डटे रहो!' }
+      ] },
     { avatar:'kurma', eraName:'Churning of the Ocean of Milk', eraNameHi:'समुद्र मंथन', obstacleType:'debris',
       deed:'Kurma held Mount Mandara steady on his back while gods and demons churned the cosmic ocean together to release Amrita, the nectar of immortality.',
       deedHi:'कूर्म ने मंदराचल पर्वत को अपनी पीठ पर स्थिर रखा, ताकि देवता और असुर मिलकर अमृत पाने के लिए समुद्र का मंथन कर सकें।',
       funFact:'The churning also released Halahala, a poison so deadly that Shiva swallowed it to save all creation \u2014 which is why he\u2019s shown with a blue throat.',
-      funFactHi:'मंथन से हलाहल नामक भयंकर विष भी निकला, जिसे शिव ने सृष्टि बचाने के लिए पी लिया — इसी कारण उन्हें नीलकंठ कहा जाता है।' },
+      funFactHi:'मंथन से हलाहल नामक भयंकर विष भी निकला, जिसे शिव ने सृष्टि बचाने के लिए पी लिया — इसी कारण उन्हें नीलकंठ कहा जाता है।',
+      beats:[
+        { at:0.22, en:'Mount Mandara trembles on his shell.', hi:'मंदराचल पर्वत उनके कवच पर काँप रहा है।' },
+        { at:0.48, en:'Devas and asuras pull the great serpent rope.', hi:'देव और असुर विशाल सर्प-रस्सी खींच रहे हैं।' },
+        { at:0.68, en:'The ocean churns faster now.', hi:'अब सागर और तेज़ी से मथ रहा है।' }
+      ] },
     { avatar:'varaha', eraName:'Lifting the Earth', eraNameHi:'पृथ्वी का उद्धार', obstacleType:'rootwall',
       deed:'Varaha dove to the bottom of the cosmic ocean and lifted the earth goddess Bhudevi safely on his tusks, after the demon Hiranyaksha had dragged her under.',
       deedHi:'वराह ने ब्रह्मांडीय सागर की तह में जाकर पृथ्वी देवी भूदेवी को अपने दाँतों पर सुरक्षित ऊपर उठाया, जिन्हें राक्षस हिरण्याक्ष ने नीचे खींच लिया था।',
       funFact:'Some Puranas describe Varaha at a truly cosmic scale \u2014 vast enough that his battle with Hiranyaksha is said to have lasted a thousand years.',
-      funFactHi:'कुछ पुराणों में वराह को इतने विशाल रूप में वर्णित किया गया है कि हिरण्याक्ष से उनका युद्ध कहा जाता है कि हज़ार वर्षों तक चला।' }
+      funFactHi:'कुछ पुराणों में वराह को इतने विशाल रूप में वर्णित किया गया है कि हिरण्याक्ष से उनका युद्ध कहा जाता है कि हज़ार वर्षों तक चला।',
+      beats:[
+        { at:0.22, en:'The ocean floor stretches endlessly below.', hi:'नीचे सागर की तलहटी अनंत तक फैली है।' },
+        { at:0.48, en:'Hiranyaksha\u2019s roar echoes through the deep.', hi:'हिरण्याक्ष की गर्जना गहराई में गूंजती है।' },
+        { at:0.68, en:'Bhudevi rests safely upon the tusks.', hi:'भूदेवी दाँतों पर सुरक्षित विराजमान हैं।' }
+      ] }
   ];
 
   const ERA_BASE_DURATION = 26000; // ms, first cycle
@@ -336,6 +360,38 @@
   let lastPraiseIdx = 0;
   const PRAISE_EN = ['Great job!', 'Well played!', 'Nicely done!', 'Impressive run!', 'You crushed that!'];
   const PRAISE_HI = ['शानदार!', 'बहुत बढ़िया!', 'वाह, कमाल किया!', 'अच्छा खेला!', 'जबरदस्त!'];
+  let firedBeats = new Set(); // indices of story beats already fired this era
+  let particles = []; // ambient flourish particles: bubbles / sparkles / dust
+  const storyCaptionEl = document.getElementById('storyCaption');
+  let captionHideTimeout = null;
+
+  function showStoryCaption(text){
+    storyCaptionEl.textContent = text;
+    storyCaptionEl.classList.add('show');
+    clearTimeout(captionHideTimeout);
+    captionHideTimeout = setTimeout(()=>{ storyCaptionEl.classList.remove('show'); }, 2200);
+  }
+
+  function spawnFlourish(avatarKey){
+    const count = 14;
+    for(let i=0; i<count; i++){
+      let p;
+      if(avatarKey === 'matsya'){ // rising bubbles
+        p = { x:60+Math.random()*(W-120), y:GROUND_Y+30, vx:(Math.random()-0.5)*0.3,
+              vy:-(0.6+Math.random()*0.8), life:0, maxLife:1400+Math.random()*600,
+              color:'#7fd4f0', r:2+Math.random()*3 };
+      } else if(avatarKey === 'kurma'){ // gold sparkles
+        p = { x:60+Math.random()*(W-120), y:60+Math.random()*200, vx:(Math.random()-0.5)*0.6,
+              vy:(Math.random()-0.5)*0.6, life:0, maxLife:900+Math.random()*500,
+              color:'#f7d774', r:1.5+Math.random()*2 };
+      } else { // varaha — drifting dust
+        p = { x:60+Math.random()*(W-120), y:GROUND_Y-Math.random()*100, vx:(Math.random()-0.5)*0.4,
+              vy:(Math.random()-0.5)*0.2, life:0, maxLife:1200+Math.random()*600,
+              color:'#c9a877', r:1+Math.random()*2 };
+      }
+      particles.push(p);
+    }
+  }
 
   function currentEra(){ return ERA_DEFS[eraIndex]; }
 
@@ -353,6 +409,7 @@
     comboCount = 0;
     animT = 0;
     runElapsed = 0;
+    particles = [];
 
     eraIndex = 0;
     eraCycle = 0;
@@ -378,6 +435,7 @@
     eraDuration = computeEraDuration();
     eraElapsed = 0;
     signatureSpawned = false;
+    firedBeats = new Set();
     unlockedTypes.add(currentEra().obstacleType);
 
     // Clear any obstacle still in flight from the previous era. Without
@@ -591,6 +649,32 @@
     const remain = Math.max(0, eraDuration - eraElapsed);
     eraTimerFill.style.width = Math.max(0, (remain/eraDuration)*100) + '%';
     eraSecondsEl.textContent = Math.ceil(remain/1000) + 's';
+
+    // Story beats: non-blocking narrative captions + a small particle
+    // flourish, fired at fixed progress points through the era. Unlike the
+    // signature moment, these never pause play — just a caption fade and
+    // some ambient particles, so the quiet stretch between transition and
+    // signature moment has some life in it.
+    const progress = eraElapsed / eraDuration;
+    const beats = currentEra().beats;
+    if(beats){
+      beats.forEach((beat, i)=>{
+        if(!firedBeats.has(i) && progress >= beat.at){
+          firedBeats.add(i);
+          showStoryCaption(currentLang === 'hi' ? beat.hi : beat.en);
+          spawnFlourish(currentEra().avatar);
+        }
+      });
+    }
+
+    // advance ambient particles
+    for(let i = particles.length - 1; i >= 0; i--){
+      const p = particles[i];
+      p.life += dt;
+      p.x += p.vx * dt * 0.06;
+      p.y += p.vy * dt * 0.06;
+      if(p.life >= p.maxLife) particles.splice(i, 1);
+    }
 
     lastSpawn += dt;
     const spawnFloor = currentSpawnFloor();
@@ -832,9 +916,22 @@
     });
   }
 
+  function drawParticles(){
+    particles.forEach(p=>{
+      const alpha = 1 - p.life / p.maxLife;
+      ctx.globalAlpha = Math.max(0, alpha) * 0.8;
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+      ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+  }
+
   function draw(){
     ctx.clearRect(0,0,W,H);
     drawGround();
+    drawParticles();
     if(state === 'playing'){
       drawObstacles();
       drawPlayer();
