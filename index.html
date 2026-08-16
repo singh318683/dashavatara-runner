@@ -36,6 +36,14 @@
   }
   #eraTimerFill { height:100%; width:100%; background:#f7d774; transition: width .1s linear; }
   #eraSeconds { font-size:11px; color:#9fb4c9; margin-top:2px; }
+  #langToggle {
+    position:absolute; top:8px; right:8px; z-index:6;
+    padding:5px 12px; border-radius:14px; border:1.5px solid #f7d774;
+    background:rgba(10,15,30,.7); color:#f7d774; font-size:11px; font-weight:700;
+    letter-spacing:.5px; cursor:pointer;
+  }
+  #langToggle:active { transform: scale(.94); }
+  #eraBox { margin-top:24px; }
 
   #msg {
     position:absolute; top:38%; left:50%; transform:translate(-50%,-50%);
@@ -113,6 +121,8 @@
     #score { font-size:16px; }
     #eraName { font-size:11px; }
     #eraTimerTrack { width:100px; }
+    #langToggle { top:6px; right:6px; padding:4px 10px; font-size:10px; }
+    #eraBox { margin-top:20px; }
   }
 </style>
 </head>
@@ -120,6 +130,8 @@
 
 <div id="wrap">
   <canvas id="game" width="900" height="400"></canvas>
+
+  <button id="langToggle">हिं</button>
 
   <div id="hud">
     <div>
@@ -198,6 +210,8 @@
   const tDeed = document.getElementById('tDeed');
   const tFunFact = document.getElementById('tFunFact');
 
+  const langToggle = document.getElementById('langToggle');
+
   const btns = { matsya: document.querySelector('[data-avatar="matsya"]'),
                  kurma:  document.querySelector('[data-avatar="kurma"]'),
                  varaha: document.querySelector('[data-avatar="varaha"]') };
@@ -205,28 +219,80 @@
   const SWAP_COOLDOWN = 450;
   const AVATARS = ['matsya','kurma','varaha'];
   const AVATAR_META = {
-    matsya: { color:'#4fb0e0', icon:'🐟', label:'Matsya' },
-    kurma:  { color:'#7ec98f', icon:'🐢', label:'Kurma' },
-    varaha: { color:'#c98a4f', icon:'🐗', label:'Varaha' }
+    matsya: { color:'#4fb0e0', icon:'🐟', label:'Matsya', labelHi:'मत्स्य',
+      keyHintEn:'dive water gaps', keyHintHi:'पानी के गड्ढों में गोता लगाएँ' },
+    kurma:  { color:'#7ec98f', icon:'🐢', label:'Kurma', labelHi:'कूर्म',
+      keyHintEn:'shell vs falling debris', keyHintHi:'गिरते मलबे से बचाव कवच' },
+    varaha: { color:'#c98a4f', icon:'🐗', label:'Varaha', labelHi:'वराह',
+      keyHintEn:'dig under walls', keyHintHi:'दीवारों के नीचे खोदें' }
   };
   const OBSTACLE_CLEAR = { watergap:'matsya', debris:'kurma', rootwall:'varaha' };
   const OBSTACLE_META = {
-    watergap: { color:'#2a6f9e', h:34, label:'water' },
-    debris:   { color:'#8a6a4a', h:30, label:'rock' },
-    rootwall: { color:'#5a3a22', h:60, label:'roots' }
+    watergap: { color:'#2a6f9e', h:34, label:'water', labelHi:'पानी' },
+    debris:   { color:'#8a6a4a', h:30, label:'rock', labelHi:'चट्टान' },
+    rootwall: { color:'#5a3a22', h:60, label:'roots', labelHi:'जड़ें' }
   };
+
+  let currentLang = 'en';
+  const I18N = {
+    en: {
+      gameTitle:'Dashavatara Runner',
+      introP1:'Swap avatars to match the obstacle ahead.',
+      introP2:'Wrong form ends the run.',
+      introHint:'Tap a button below, or press 1 / 2 / 3. Tap anywhere to start.',
+      whatHappened:'What happened',
+      funFact:'Fun fact',
+      begin:'Begin',
+      runEnded:'Run Ended',
+      wrongForm:(name)=>`Wrong form — needed ${name}`,
+      distance:(n)=>`Distance: ${n}m`,
+      tryAgain:'Tap anywhere or press Space to try again.',
+      runAgain:'Run Again',
+      footer:'Dashavatara Runner — prototype build',
+      cleared:'Cleared!',
+      combo:(n)=>`Combo x${n}`,
+      signatureCleared:'Signature cleared!',
+      toggleLabel:'हिं'
+    },
+    hi: {
+      gameTitle:'दशावतार रनर',
+      introP1:'सामने आ रही बाधा से मेल खाने के लिए अवतार बदलें।',
+      introP2:'गलत रूप होने पर रन खत्म हो जाएगा।',
+      introHint:'नीचे किसी बटन पर टैप करें, या 1 / 2 / 3 दबाएँ। शुरू करने के लिए कहीं भी टैप करें।',
+      whatHappened:'क्या हुआ',
+      funFact:'रोचक तथ्य',
+      begin:'शुरू करें',
+      runEnded:'रन समाप्त',
+      wrongForm:(name)=>`गलत रूप — ${name} चाहिए था`,
+      distance:(n)=>`दूरी: ${n} मी`,
+      tryAgain:'फिर से प्रयास करने के लिए कहीं भी टैप करें या Space दबाएँ।',
+      runAgain:'फिर से खेलें',
+      footer:'दशावतार रनर — प्रोटोटाइप बिल्ड',
+      cleared:'पार हुआ!',
+      combo:(n)=>`कॉम्बो x${n}`,
+      signatureCleared:'विशेष क्षण पार हुआ!',
+      toggleLabel:'EN'
+    }
+  };
+  function t(){ return I18N[currentLang]; }
 
   // --- Era definitions (time-based) ---
   const ERA_DEFS = [
-    { avatar:'matsya', eraName:'The Great Deluge', obstacleType:'watergap',
+    { avatar:'matsya', eraName:'The Great Deluge', eraNameHi:'महाप्रलय', obstacleType:'watergap',
       deed:'Matsya guided Manu\u2019s boat, tied to the serpent Vasuki, safely through a cataclysmic flood \u2014 preserving all life, the seeds of every plant, and the Vedas themselves.',
-      funFact:'In the earliest telling (the Shatapatha Brahmana), Matsya isn\u2019t yet an avatar of Vishnu at all \u2014 that link was added later, in the Puranas.' },
-    { avatar:'kurma', eraName:'Churning of the Ocean of Milk', obstacleType:'debris',
+      deedHi:'मत्स्य ने मनु की नाव को सर्प वासुकी से बाँधकर, एक भीषण प्रलय के बीच सुरक्षित मार्ग दिखाया — जिससे समस्त जीवन, हर पौधे के बीज और वेद सुरक्षित रह सके।',
+      funFact:'In the earliest telling (the Shatapatha Brahmana), Matsya isn\u2019t yet an avatar of Vishnu at all \u2014 that link was added later, in the Puranas.',
+      funFactHi:'सबसे प्राचीन कथा (शतपथ ब्राह्मण) में मत्स्य अभी विष्णु के अवतार नहीं थे — यह संबंध बाद में पुराणों में जोड़ा गया।' },
+    { avatar:'kurma', eraName:'Churning of the Ocean of Milk', eraNameHi:'समुद्र मंथन', obstacleType:'debris',
       deed:'Kurma held Mount Mandara steady on his back while gods and demons churned the cosmic ocean together to release Amrita, the nectar of immortality.',
-      funFact:'The churning also released Halahala, a poison so deadly that Shiva swallowed it to save all creation \u2014 which is why he\u2019s shown with a blue throat.' },
-    { avatar:'varaha', eraName:'Lifting the Earth', obstacleType:'rootwall',
+      deedHi:'कूर्म ने मंदराचल पर्वत को अपनी पीठ पर स्थिर रखा, ताकि देवता और असुर मिलकर अमृत पाने के लिए समुद्र का मंथन कर सकें।',
+      funFact:'The churning also released Halahala, a poison so deadly that Shiva swallowed it to save all creation \u2014 which is why he\u2019s shown with a blue throat.',
+      funFactHi:'मंथन से हलाहल नामक भयंकर विष भी निकला, जिसे शिव ने सृष्टि बचाने के लिए पी लिया — इसी कारण उन्हें नीलकंठ कहा जाता है।' },
+    { avatar:'varaha', eraName:'Lifting the Earth', eraNameHi:'पृथ्वी का उद्धार', obstacleType:'rootwall',
       deed:'Varaha dove to the bottom of the cosmic ocean and lifted the earth goddess Bhudevi safely on his tusks, after the demon Hiranyaksha had dragged her under.',
-      funFact:'Some Puranas describe Varaha at a truly cosmic scale \u2014 vast enough that his battle with Hiranyaksha is said to have lasted a thousand years.' }
+      deedHi:'वराह ने ब्रह्मांडीय सागर की तह में जाकर पृथ्वी देवी भूदेवी को अपने दाँतों पर सुरक्षित ऊपर उठाया, जिन्हें राक्षस हिरण्याक्ष ने नीचे खींच लिया था।',
+      funFact:'Some Puranas describe Varaha at a truly cosmic scale \u2014 vast enough that his battle with Hiranyaksha is said to have lasted a thousand years.',
+      funFactHi:'कुछ पुराणों में वराह को इतने विशाल रूप में वर्णित किया गया है कि हिरण्याक्ष से उनका युद्ध कहा जाता है कि हज़ार वर्षों तक चला।' }
   ];
 
   const ERA_BASE_DURATION = 26000; // ms, first cycle
@@ -290,18 +356,24 @@
     obstacles.length = 0;
     lastSpawn = 0;
 
-    const era = currentEra();
-    eraNameEl.textContent = AVATAR_META[era.avatar].label;
     eraTimerFill.style.width = '100%';
-    eraSecondsEl.textContent = Math.ceil(eraDuration/1000) + 's';
-    tIcon.textContent = AVATAR_META[era.avatar].icon;
-    tAvatarName.textContent = AVATAR_META[era.avatar].label;
-    tEraName.textContent = era.eraName;
-    tDeed.textContent = era.deed;
-    tFunFact.textContent = era.funFact;
+    renderTransitionText();
 
     state = 'transition';
     transitionOverlay.style.display = 'flex';
+  }
+
+  function renderTransitionText(){
+    const era = currentEra();
+    const avMeta = AVATAR_META[era.avatar];
+    const avName = currentLang === 'hi' ? avMeta.labelHi : avMeta.label;
+    eraNameEl.textContent = avName;
+    eraSecondsEl.textContent = Math.ceil((eraDuration - eraElapsed)/1000) + 's';
+    tIcon.textContent = avMeta.icon;
+    tAvatarName.textContent = avName;
+    tEraName.textContent = currentLang === 'hi' ? era.eraNameHi : era.eraName;
+    tDeed.textContent = currentLang === 'hi' ? era.deedHi : era.deed;
+    tFunFact.textContent = currentLang === 'hi' ? era.funFactHi : era.funFact;
   }
 
   function endTransition(){
@@ -354,6 +426,37 @@
     if(state === 'transition') endTransition();
   });
 
+  function applyLanguage(){
+    document.documentElement.lang = currentLang === 'hi' ? 'hi' : 'en';
+    langToggle.textContent = t().toggleLabel;
+    msgEl.querySelector('h1').textContent = t().gameTitle;
+    const msgPs = msgEl.querySelectorAll('p:not(.hint)');
+    if(msgPs[0]) msgPs[0].innerHTML = t().introP1 + '<br>' + t().introP2;
+    msgEl.querySelectorAll('.hint').forEach(p => p.textContent = t().introHint);
+    const tLabels = document.querySelectorAll('#transitionOverlay .tLabel');
+    if(tLabels[0]) tLabels[0].textContent = t().whatHappened;
+    if(tLabels[1]) tLabels[1].textContent = t().funFact;
+    beginBtn.textContent = t().begin;
+    restartBtn.textContent = t().runAgain;
+    document.getElementById('footer').textContent = t().footer;
+    AVATARS.forEach(a=>{
+      const meta = AVATAR_META[a];
+      btns[a].querySelector('.name').textContent = currentLang === 'hi' ? meta.labelHi : meta.label.toUpperCase();
+      const num = a === 'matsya' ? '1' : (a === 'kurma' ? '2' : '3');
+      const hint = currentLang === 'hi' ? meta.keyHintHi : meta.keyHintEn;
+      btns[a].querySelector('.key').textContent = `${num} · ${hint}`;
+    });
+    // Re-render whatever dynamic screen is currently showing
+    if(state === 'transition') renderTransitionText();
+    if(state === 'gameover' && lastEndReasonAvatar) renderGameOverText();
+  }
+
+  langToggle.addEventListener('pointerdown', (e)=>{
+    e.stopPropagation();
+    currentLang = currentLang === 'en' ? 'hi' : 'en';
+    applyLanguage();
+  });
+
   function pickObstacleType(forceSignature){
     if(forceSignature) return currentEra().obstacleType;
     const pool = Array.from(unlockedTypes);
@@ -373,13 +476,22 @@
     });
   }
 
-  function endRun(reason){
+  let lastEndReasonAvatar = null; // remembers which avatar was needed, for language toggle re-render
+
+  function endRun(neededAvatarKey){
     state = 'gameover';
+    lastEndReasonAvatar = neededAvatarKey;
     msgEl.style.display = 'block';
-    msgEl.querySelector('h1').textContent = 'Run Ended';
-    msgEl.querySelector('p').innerHTML = reason + `<br>Distance: ${Math.floor(distance)}m`;
-    msgEl.querySelectorAll('.hint').forEach(p=>p.textContent = 'Tap anywhere or press Space to try again.');
+    renderGameOverText();
     restartBtn.style.display = 'inline-block';
+  }
+
+  function renderGameOverText(){
+    const avMeta = AVATAR_META[lastEndReasonAvatar];
+    const avName = currentLang === 'hi' ? avMeta.labelHi : avMeta.label;
+    msgEl.querySelector('h1').textContent = t().runEnded;
+    msgEl.querySelector('p').innerHTML = t().wrongForm(avName) + `<br>` + t().distance(Math.floor(distance));
+    msgEl.querySelectorAll('.hint').forEach(p=>p.textContent = t().tryAgain);
   }
 
   function currentRampRate(){
@@ -476,9 +588,9 @@
         if(player.avatar === needed){
           o.cleared = true;
           comboCount++;
-          comboEl.textContent = o.signature ? 'Signature cleared!' : (comboCount > 1 ? `Combo x${comboCount}` : 'Cleared!');
+          comboEl.textContent = o.signature ? t().signatureCleared : (comboCount > 1 ? t().combo(comboCount) : t().cleared);
         } else {
-          endRun(`Wrong form — needed ${AVATAR_META[needed].label}`);
+          endRun(needed);
           return;
         }
       }
@@ -662,7 +774,8 @@
       ctx.fillStyle = '#fff';
       ctx.font = '10px sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText(o.signature ? meta.label+' !!' : meta.label, o.x + o.w/2, o.y - 6);
+      const obLabel = currentLang === 'hi' ? meta.labelHi : meta.label;
+      ctx.fillText(o.signature ? obLabel+' !!' : obLabel, o.x + o.w/2, o.y - 6);
       const need = OBSTACLE_CLEAR[o.type];
       AVATAR_DRAW[need](o.x + o.w/2, o.y + (o.h/2) + 4, 0.55);
     });
@@ -689,6 +802,7 @@
   }
 
   reset();
+  applyLanguage();
   requestAnimationFrame(loop);
 })();
 </script>
