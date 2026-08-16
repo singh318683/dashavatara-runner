@@ -336,7 +336,8 @@
     animT += dt;
     // ~15 m/s at starting speed, scaling with speed as the run accelerates
     distance += speed * dt * 0.0035;
-    speed += dt * 0.0008;
+    // gentler global speed ramp — was jumping ~6x within the first era alone
+    speed += dt * 0.00025;
     scoreEl.textContent = Math.floor(distance) + 'm';
 
     eraElapsed += dt;
