@@ -223,6 +223,7 @@
   const GROUND_Y = H - 70;
 
   const scoreEl = document.getElementById('score');
+  const hudEl = document.getElementById('hud');
   const comboEl = document.getElementById('combo');
   const msgEl = document.getElementById('msg');
   const restartBtn = document.getElementById('restartBtn');
@@ -392,6 +393,7 @@
 
     state = 'transition';
     transitionOverlay.style.display = 'flex';
+    hudEl.style.visibility = 'hidden'; // avoid overlapping the language toggle / card content
   }
 
   function renderTransitionText(){
@@ -423,6 +425,7 @@
 
   function endTransition(){
     transitionOverlay.style.display = 'none';
+    hudEl.style.visibility = 'visible';
     state = 'playing';
     lastSpawn = 0;
   }
