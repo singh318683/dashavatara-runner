@@ -20,6 +20,7 @@
     background: linear-gradient(180deg,#0d1b3d 0%, #14284f 40%, #1c3a5e 70%, #234a5e 100%);
     border-radius: 8px;
     box-shadow: 0 0 0 2px #d4af37aa, 0 8px 30px rgba(0,0,0,.6);
+    transition: background 1.1s ease;
   }
   #hud {
     position:absolute; top:10px; left:14px; right:14px;
@@ -271,6 +272,15 @@
     rootwall: { color:'#5a3a22', h:60, label:'roots', labelHi:'जड़ें' }
   };
 
+  // Sky gradient per era, matching each avatar's setting. Ground stays a
+  // fixed dark tone regardless (drawn separately) so obstacle contrast
+  // never depends on the theme.
+  const BG_THEMES = {
+    matsya: 'linear-gradient(180deg,#0d1b3d 0%, #14284f 35%, #1c5570 65%, #237a8a 100%)', // stormy flood
+    kurma:  'linear-gradient(180deg,#14213d 0%, #253a5c 30%, #5a6e7a 60%, #cfc19a 100%)', // ocean of milk
+    varaha: 'linear-gradient(180deg,#05080f 0%, #0f1a2a 30%, #2e2a1f 60%, #4a3820 100%)'  // cosmic depths to earth
+  };
+
   let currentLang = 'en';
   const I18N = {
     en: {
@@ -448,6 +458,7 @@
     obstacles.length = 0;
     lastSpawn = 0;
 
+    canvas.style.background = BG_THEMES[currentEra().avatar];
     eraTimerFill.style.width = '100%';
     renderTransitionText();
 
