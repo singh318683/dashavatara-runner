@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Dashavatara Runner — Prototype</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height:100%; background:#0a0f1e; overflow:hidden; touch-action: manipulation; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    color:#f2e9d8;
+    min-height:100vh;
+    padding: 12px;
+  }
+  #wrap { position:relative; width:100%; max-width:900px; }
+  canvas {
+    display:block; width:100%; height:auto;
+    background: linear-gradient(180deg,#0d1b3d 0%, #14284f 40%, #1c3a5e 70%, #234a5e 100%);
+    border-radius: 8px;
+    box-shadow: 0 0 0 2px #d4af37aa, 0 8px 30px rgba(0,0,0,.6);
+  }
+  #hud {
+    position:absolute; top:10px; left:14px; right:14px;
+    display:flex; justify-content:space-between; align-items:flex-start;
+    font-size:14px; letter-spacing:.5px; pointer-events:none; z-index:5;
+  }
+  #score { font-size:20px; font-weight:700; color:#f7d774; text-shadow:0 2px 6px rgba(0,0,0,.6); }
+  #combo { font-size:13px; color:#8fe3c8; margin-top:2px; min-height:16px; }
+  #eraBox { text-align:right; }
+  #eraName { font-size:13px; font-weight:700; color:#f2e9d8; text-shadow:0 2px 6px rgba(0,0,0,.6); }
+  #eraTimerTrack {
+    margin-top:4px; width:140px; height:5px; border-radius:3px;
+    background:rgba(255,255,255,.15); overflow:hidden;
+  }
+  #eraTimerFill { height:100%; width:100%; background:#f7d774; transition: width .1s linear; }
+
+  #msg {
+    position:absolute; top:38%; left:50%; transform:translate(-50%,-50%);
+    text-align:center; z-index:10; pointer-events:none; padding: 0 20px;
+  }
+  #msg h1 { font-size:clamp(20px,5vw,32px); color:#f7d774; text-shadow:0 3px 10px rgba(0,0,0,.7); }
+  #msg p { margin-top:10px; font-size:clamp(13px,2.5vw,16px); color:#cfe3e0; line-height:1.5; }
+  #msg .hint { margin-top:18px; font-size:clamp(12px,2vw,14px); color:#9fb4c9; }
+
+  #transitionOverlay {
+    position:absolute; inset:0; z-index:8; display:none;
+    align-items:center; justify-content:center; text-align:center;
+    background: rgba(6,10,22,.72); border-radius:8px; padding: 0 24px;
+  }
+  #transitionOverlay .icon { font-size:44px; display:block; margin-bottom:8px; }
+  #transitionOverlay h2 { font-size:clamp(18px,4vw,26px); color:#f7d774; text-shadow:0 3px 10px rgba(0,0,0,.7); }
+  #transitionOverlay p { margin-top:10px; font-size:clamp(12px,2.3vw,14px); color:#dce8e6; max-width:520px; line-height:1.5; }
+
+  #controls {
+    display:flex; gap:10px; width:100%; max-width:900px; margin-top:14px;
+  }
+  .avatarBtn {
+    flex:1; position:relative; padding:14px 6px 10px;
+    border-radius:12px; border:2px solid #3a4f66;
+    background: linear-gradient(180deg,#16233d,#0e1728);
+    color:#e8dcc0; text-align:center; cursor:pointer; user-select:none;
+    transition: transform .08s ease, border-color .15s, opacity .15s;
+  }
+  .avatarBtn .icon { font-size:26px; display:block; margin-bottom:4px; }
+  .avatarBtn .name { font-size:12px; font-weight:600; letter-spacing:.5px; }
+  .avatarBtn .key { font-size:10px; color:#7a8ba1; margin-top:2px; }
+  .avatarBtn.active { border-color:#f7d774; box-shadow: 0 0 14px rgba(247,215,116,.5); transform: translateY(-2px); }
+  .avatarBtn:active { transform: scale(.95); }
+  .cooldownBar {
+    position:absolute; bottom:0; left:0; height:3px; background:#f7d774;
+    border-radius:0 0 10px 10px; width:0%;
+  }
+
+  #restartBtn {
+    margin-top:14px; padding:10px 26px; border-radius:20px; border:2px solid #f7d774;
+    background:transparent; color:#f7d774; font-weight:700; letter-spacing:.5px;
+    cursor:pointer; display:none;
+  }
+  #restartBtn:active { transform: scale(.96); }
+
+  #footer { margin-top:10px; font-size:11px; color:#5c6d82; text-align:center; }
+</style>
+</head>
+<body>
+
+<div id="wrap">
+  <canvas id="game" width="900" height="400"></canvas>
+
+  <div id="hud">
+    <div>
+      <div id="score">0m</div>
+      <div id="combo"></div>
+    </div>
+    <div id="eraBox">
+      <div id="eraName">Matsya</div>
+      <div id="eraTimerTrack"><div id="eraTimerFill"></div></div>
+    </div>
+  </div>
+
+  <div id="msg">
+    <h1>Dashavatara Runner</h1>
+    <p>Swap avatars to match the obstacle ahead.<br>Wrong form ends the run.</p>
+    <p class="hint">Tap a button below, or press 1 / 2 / 3. Tap anywhere to start.</p>
+  </div>
+
+  <div id="transitionOverlay">
+    <div>
+      <span class="icon" id="tIcon">🐟</span>
+      <h2 id="tTitle">Matsya — The Great Flood</h2>
+      <p id="tFact">Matsya guided Manu's boat through a great flood to save all living beings.</p>
+    </div>
+  </div>
+</div>
+
+<div id="controls">
+  <div class="avatarBtn active" data-avatar="matsya">
+    <span class="icon">🐟</span>
+    <span class="name">MATSYA</span>
+    <span class="key">1 · dive water gaps</span>
+    <div class="cooldownBar"></div>
+  </div>
+  <div class="avatarBtn" data-avatar="kurma">
+    <span class="icon">🐢</span>
+    <span class="name">KURMA</span>
+    <span class="key">2 · shell vs falling debris</span>
+    <div class="cooldownBar"></div>
+  </div>
+  <div class="avatarBtn" data-avatar="varaha">
+    <span class="icon">🐗</span>
+    <span class="name">VARAHA</span>
+    <span class="key">3 · dig under walls</span>
+    <div class="cooldownBar"></div>
+  </div>
+</div>
+
+<button id="restartBtn">Run Again</button>
+<div id="footer">Dashavatara Runner — prototype build</div>
+
+<script>
+(function(){
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const GROUND_Y = H - 70;
+
+  const scoreEl = document.getElementById('score');
+  const comboEl = document.getElementById('combo');
+  const msgEl = document.getElementById('msg');
+  const restartBtn = document.getElementById('restartBtn');
+  const eraNameEl = document.getElementById('eraName');
+  const eraTimerFill = document.getElementById('eraTimerFill');
+  const transitionOverlay = document.getElementById('transitionOverlay');
+  const tIcon = document.getElementById('tIcon');
+  const tTitle = document.getElementById('tTitle');
+  const tFact = document.getElementById('tFact');
+
+  const btns = { matsya: document.querySelector('[data-avatar="matsya"]'),
+                 kurma:  document.querySelector('[data-avatar="kurma"]'),
+                 varaha: document.querySelector('[data-avatar="varaha"]') };
+
+  const SWAP_COOLDOWN = 450;
+  const AVATARS = ['matsya','kurma','varaha'];
+  const AVATAR_META = {
+    matsya: { color:'#4fb0e0', icon:'🐟', label:'Matsya' },
+    kurma:  { color:'#7ec98f', icon:'🐢', label:'Kurma' },
+    varaha: { color:'#c98a4f', icon:'🐗', label:'Varaha' }
+  };
+  const OBSTACLE_CLEAR = { watergap:'matsya', debris:'kurma', rootwall:'varaha' };
+  const OBSTACLE_META = {
+    watergap: { color:'#2a6f9e', h:34, label:'water' },
+    debris:   { color:'#8a6a4a', h:30, label:'rock' },
+    rootwall: { color:'#5a3a22', h:60, label:'roots' }
+  };
+
+  // --- Era definitions (time-based) ---
+  const ERA_DEFS = [
+    { avatar:'matsya', title:'Matsya — The Great Flood', obstacleType:'watergap',
+      fact:'Matsya, the fish avatar, guided Manu\u2019s boat safely through a great flood to save all living beings.' },
+    { avatar:'kurma', title:'Kurma — Churning of the Ocean', obstacleType:'debris',
+      fact:'Kurma, the tortoise, held Mount Mandara steady on his back so gods and demons could churn the cosmic ocean.' },
+    { avatar:'varaha', title:'Varaha — Lifting the Earth', obstacleType:'rootwall',
+      fact:'Varaha, the boar, dove into the ocean and lifted the earth goddess safely on his tusks.' }
+  ];
+
+  const ERA_BASE_DURATION = 26000; // ms, first cycle
+  const ERA_DURATION_STEP = 4000;  // added per full cycle through all eras
+  const ERA_DURATION_CAP = 46000;
+  const SIGNATURE_WINDOW = 7000;   // last N ms of era reserved for signature obstacle
+  const WARMUP_WINDOW = 5000;      // first N ms of era, gentler spawn
+  const TRANSITION_MS = 2600;
+
+  let state; // 'transition' | 'playing' | 'gameover'
+  let player, obstacles, speed, distance, lastSpawn, cooldownUntil, comboCount, animT;
+  let eraIndex, eraCycle, eraElapsed, eraDuration, signatureSpawned, unlockedTypes;
+  let transitionUntil;
+
+  function currentEra(){ return ERA_DEFS[eraIndex]; }
+
+  function computeEraDuration(){
+    return Math.min(ERA_DURATION_CAP, ERA_BASE_DURATION + eraCycle * ERA_DURATION_STEP);
+  }
+
+  function reset(){
+    player = { x:120, y:GROUND_Y, w:34, h:34 };
+    obstacles = [];
+    speed = 4.2;
+    distance = 0;
+    lastSpawn = 0;
+    cooldownUntil = 0;
+    comboCount = 0;
+    animT = 0;
+
+    eraIndex = 0;
+    eraCycle = 0;
+    unlockedTypes = new Set(); // obstacle types the player has already faced this run
+
+    msgEl.style.display = 'none';
+    restartBtn.style.display = 'none';
+    comboEl.textContent = '';
+
+    player.avatar = ERA_DEFS[0].avatar;
+    updateBtnStates();
+
+    startEra(0, 0);
+  }
+
+  function startEra(idx, cycle){
+    eraIndex = idx;
+    eraCycle = cycle;
+    eraDuration = computeEraDuration();
+    eraElapsed = 0;
+    signatureSpawned = false;
+    unlockedTypes.add(currentEra().obstacleType);
+
+    const era = currentEra();
+    eraNameEl.textContent = AVATAR_META[era.avatar].label;
+    tIcon.textContent = AVATAR_META[era.avatar].icon;
+    tTitle.textContent = era.title;
+    tFact.textContent = era.fact;
+
+    state = 'transition';
+    transitionUntil = performance.now() + TRANSITION_MS;
+    transitionOverlay.style.display = 'flex';
+  }
+
+  function endTransition(){
+    transitionOverlay.style.display = 'none';
+    state = 'playing';
+    lastSpawn = 0;
+  }
+
+  function advanceEra(){
+    let nextIdx = eraIndex + 1;
+    let nextCycle = eraCycle;
+    if(nextIdx >= ERA_DEFS.length){
+      nextIdx = 0;
+      nextCycle = eraCycle + 1;
+    }
+    startEra(nextIdx, nextCycle);
+  }
+
+  function swapTo(avatar){
+    if(state === 'gameover'){ reset(); return; }
+    if(state !== 'playing') return;
+    const now = performance.now();
+    if(now < cooldownUntil) return;
+    if(avatar === player.avatar) return;
+    player.avatar = avatar;
+    cooldownUntil = now + SWAP_COOLDOWN;
+    updateBtnStates();
+  }
+
+  function updateBtnStates(){
+    AVATARS.forEach(a=>{
+      btns[a].classList.toggle('active', a === player.avatar);
+    });
+  }
+
+  Object.keys(btns).forEach(a=>{
+    btns[a].addEventListener('pointerdown', (e)=>{ e.preventDefault(); swapTo(a); });
+  });
+  window.addEventListener('keydown', (e)=>{
+    if(e.key === '1') swapTo('matsya');
+    if(e.key === '2') swapTo('kurma');
+    if(e.key === '3') swapTo('varaha');
+    if(e.key === ' ' && state === 'gameover') reset();
+  });
+  canvas.addEventListener('pointerdown', ()=>{ if(state === 'gameover') reset(); });
+  restartBtn.addEventListener('pointerdown', reset);
+
+  function pickObstacleType(forceSignature){
+    if(forceSignature) return currentEra().obstacleType;
+    const pool = Array.from(unlockedTypes);
+    // weight current era's type higher
+    const weighted = pool.concat(Array(2).fill(currentEra().obstacleType));
+    return weighted[Math.floor(Math.random()*weighted.length)];
+  }
+
+  function spawnObstacle(type, big){
+    const meta = OBSTACLE_META[type];
+    const w = big ? 64 : 46;
+    obstacles.push({
+      type, x: W + 40, w,
+      h: meta.h + (big ? 14 : 0),
+      y: GROUND_Y + 34 - (meta.h + (big ? 14 : 0)),
+      cleared:false, signature: !!big
+    });
+  }
+
+  function endRun(reason){
+    state = 'gameover';
+    msgEl.style.display = 'block';
+    msgEl.querySelector('h1').textContent = 'Run Ended';
+    msgEl.querySelector('p').innerHTML = reason + `<br>Distance: ${Math.floor(distance)}m`;
+    msgEl.querySelectorAll('.hint').forEach(p=>p.textContent = 'Tap anywhere or press Space to try again.');
+    restartBtn.style.display = 'inline-block';
+  }
+
+  function update(dt){
+    if(state === 'transition'){
+      if(performance.now() >= transitionUntil) endTransition();
+      return;
+    }
+    if(state !== 'playing') return;
+
+    animT += dt;
+    distance += speed * dt * 0.06;
+    speed += dt * 0.0008;
+    scoreEl.textContent = Math.floor(distance) + 'm';
+
+    eraElapsed += dt;
+    const remain = Math.max(0, eraDuration - eraElapsed);
+    eraTimerFill.style.width = Math.max(0, (remain/eraDuration)*100) + '%';
+
+    // signature moment: once, inside the last SIGNATURE_WINDOW ms
+    if(!signatureSpawned && remain <= SIGNATURE_WINDOW && remain > SIGNATURE_WINDOW - 800){
+      spawnObstacle(currentEra().obstacleType, true);
+      signatureSpawned = true;
+      lastSpawn = 0; // avoid instantly double spawning
+    }
+
+    if(eraElapsed >= eraDuration){
+      advanceEra();
+      return;
+    }
+
+    lastSpawn += dt;
+    const inWarmup = eraElapsed < WARMUP_WINDOW;
+    const inSignatureWindow = remain <= SIGNATURE_WINDOW;
+    let spawnGap;
+    if(inWarmup) spawnGap = 1500;
+    else if(inSignatureWindow) spawnGap = 1050; // still spawn a little around the big moment
+    else {
+      const rampProgress = (eraElapsed - WARMUP_WINDOW) / Math.max(1, eraDuration - WARMUP_WINDOW - SIGNATURE_WINDOW);
+      spawnGap = 1300 - Math.min(650, rampProgress*650); // tightens through the ramp
+    }
+
+    if(lastSpawn > spawnGap){
+      lastSpawn = 0;
+      spawnObstacle(pickObstacleType(false), false);
+    }
+
+    for(let i = obstacles.length -1; i>=0; i--){
+      const o = obstacles[i];
+      o.x -= speed;
+      if(!o.cleared && o.x < player.x + player.w && o.x + o.w > player.x){
+        const needed = OBSTACLE_CLEAR[o.type];
+        if(player.avatar === needed){
+          o.cleared = true;
+          comboCount++;
+          comboEl.textContent = o.signature ? 'Signature cleared!' : (comboCount > 1 ? `Combo x${comboCount}` : 'Cleared!');
+        } else {
+          endRun(`Wrong form — needed ${AVATAR_META[needed].label}`);
+          return;
+        }
+      }
+      if(o.x < -70) obstacles.splice(i,1);
+    }
+
+    const now = performance.now();
+    AVATARS.forEach(a=>{
+      const bar = btns[a].querySelector('.cooldownBar');
+      if(a === player.avatar || now >= cooldownUntil){
+        bar.style.width = '0%';
+      } else {
+        const r = Math.max(0, cooldownUntil - now) / SWAP_COOLDOWN;
+        bar.style.width = (r*100) + '%';
+      }
+    });
+  }
+
+  function drawGround(){
+    ctx.fillStyle = '#0f2438';
+    ctx.fillRect(0, GROUND_Y+34, W, H-(GROUND_Y+34));
+    ctx.strokeStyle = 'rgba(247,215,116,.25)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, GROUND_Y+34);
+    ctx.lineTo(W, GROUND_Y+34);
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(247,215,116,.12)';
+    const off = (animT*0.06 % 40);
+    for(let x = -off; x < W; x += 40){
+      ctx.beginPath();
+      ctx.moveTo(x, GROUND_Y+34);
+      ctx.lineTo(x-14, H);
+      ctx.stroke();
+    }
+  }
+
+  function drawPlayer(){
+    const meta = AVATAR_META[player.avatar];
+    const bob = Math.sin(animT*0.012) * 3;
+    ctx.font = '30px system-ui';
+    ctx.textAlign = 'center';
+    ctx.shadowColor = meta.color;
+    ctx.shadowBlur = 18;
+    ctx.fillText(meta.icon, player.x + player.w/2, player.y + player.h + bob);
+    ctx.shadowBlur = 0;
+    const now = performance.now();
+    if(now < cooldownUntil){
+      ctx.strokeStyle = 'rgba(255,255,255,.3)';
+      ctx.beginPath();
+      ctx.arc(player.x+player.w/2, player.y+player.h/2+bob, 26, 0, Math.PI*2);
+      ctx.stroke();
+    }
+  }
+
+  function drawObstacles(){
+    obstacles.forEach(o=>{
+      const meta = OBSTACLE_META[o.type];
+      ctx.fillStyle = o.cleared ? 'rgba(120,200,150,.35)' : meta.color;
+      ctx.fillRect(o.x, o.y, o.w, o.h);
+      if(o.signature){
+        ctx.strokeStyle = '#f7d774';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(o.x-2, o.y-2, o.w+4, o.h+4);
+      }
+      ctx.fillStyle = '#fff';
+      ctx.font = '10px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(o.signature ? meta.label+' !!' : meta.label, o.x + o.w/2, o.y - 6);
+      const need = OBSTACLE_CLEAR[o.type];
+      ctx.font = '14px system-ui';
+      ctx.fillText(AVATAR_META[need].icon, o.x + o.w/2, o.y + (o.h/2) + 5);
+    });
+  }
+
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    drawGround();
+    if(state === 'playing'){
+      drawObstacles();
+      drawPlayer();
+    } else if(state === 'transition'){
+      drawPlayer();
+    }
+  }
+
+  let lastT = performance.now();
+  function loop(t){
+    const dt = t - lastT;
+    lastT = t;
+    update(dt);
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  reset();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
