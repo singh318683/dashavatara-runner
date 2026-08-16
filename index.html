@@ -61,6 +61,13 @@
   #transitionOverlay .icon { font-size:44px; display:block; margin-bottom:6px; }
   #transitionOverlay .tAvatarName { font-size:13px; letter-spacing:1.5px; text-transform:uppercase; color:#9fb4c9; }
   #transitionOverlay h2 { font-size:clamp(18px,4vw,26px); color:#f7d774; text-shadow:0 3px 10px rgba(0,0,0,.7); margin-top:2px; }
+  #completeBanner {
+    margin-bottom:16px; padding:8px 18px; border-radius:20px;
+    background:rgba(143,227,200,.14); border:1.5px solid #8fe3c8;
+    color:#8fe3c8; font-size:clamp(13px,2.5vw,15px); font-weight:700;
+    display:inline-flex; align-items:center; gap:8px;
+  }
+  #completeCheck { font-size:16px; }
   #transitionOverlay .tLabel {
     margin-top:14px; font-size:11px; letter-spacing:1px; text-transform:uppercase;
     color:#f7d774; opacity:.85;
@@ -153,6 +160,10 @@
 
   <div id="transitionOverlay">
     <div>
+      <div id="completeBanner" style="display:none;">
+        <span id="completeCheck">✓</span>
+        <span id="completeText"></span>
+      </div>
       <span class="icon" id="tIcon">🐟</span>
       <div class="tAvatarName" id="tAvatarName">Matsya</div>
       <h2 id="tEraName">The Great Flood</h2>
@@ -305,6 +316,10 @@
   let player, obstacles, speed, distance, lastSpawn, cooldownUntil, comboCount, animT;
   let eraIndex, eraCycle, eraElapsed, eraDuration, signatureSpawned, unlockedTypes;
   let runElapsed; // total real playtime this run (excludes transition pauses) — drives the speed-ramp tier
+  let lastCompletedAvatar = null; // avatar just finished, for the completion banner
+  let lastPraiseIdx = 0;
+  const PRAISE_EN = ['Great job!', 'Well played!', 'Nicely done!', 'Impressive run!', 'You crushed that!'];
+  const PRAISE_HI = ['शानदार!', 'बहुत बढ़िया!', 'वाह, कमाल किया!', 'अच्छा खेला!', 'जबरदस्त!'];
 
   function currentEra(){ return ERA_DEFS[eraIndex]; }
 
@@ -325,6 +340,7 @@
 
     eraIndex = 0;
     eraCycle = 0;
+    lastCompletedAvatar = null; // fresh run — no completion banner on the very first era
     // All three avatars are already unlocked in this prototype, so every
     // obstacle type is in play from second one — era only weights which
     // type shows up more, it doesn't gate which types can appear.
@@ -374,6 +390,20 @@
     tEraName.textContent = currentLang === 'hi' ? era.eraNameHi : era.eraName;
     tDeed.textContent = currentLang === 'hi' ? era.deedHi : era.deed;
     tFunFact.textContent = currentLang === 'hi' ? era.funFactHi : era.funFact;
+
+    const completeBanner = document.getElementById('completeBanner');
+    const completeText = document.getElementById('completeText');
+    if(lastCompletedAvatar){
+      const doneMeta = AVATAR_META[lastCompletedAvatar];
+      const doneName = currentLang === 'hi' ? doneMeta.labelHi : doneMeta.label;
+      const praise = currentLang === 'hi' ? PRAISE_HI[lastPraiseIdx] : PRAISE_EN[lastPraiseIdx];
+      completeText.textContent = currentLang === 'hi'
+        ? `${doneName} पूरा हुआ! ${praise}`
+        : `${doneName} complete! ${praise}`;
+      completeBanner.style.display = 'inline-flex';
+    } else {
+      completeBanner.style.display = 'none';
+    }
   }
 
   function endTransition(){
@@ -383,12 +413,15 @@
   }
 
   function advanceEra(){
+    const completedAvatar = currentEra().avatar;
     let nextIdx = eraIndex + 1;
     let nextCycle = eraCycle;
     if(nextIdx >= ERA_DEFS.length){
       nextIdx = 0;
       nextCycle = eraCycle + 1;
     }
+    lastCompletedAvatar = completedAvatar;
+    lastPraiseIdx = Math.floor(Math.random() * PRAISE_EN.length);
     startEra(nextIdx, nextCycle);
   }
 
