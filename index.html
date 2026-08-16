@@ -6,7 +6,7 @@
 <title>Dashavatara Runner — Prototype</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
-  html, body { height:100%; background:#0a0f1e; overflow:hidden; touch-action: manipulation; }
+  html, body { height:100%; background:#0a0f1e; overflow-y:auto; overflow-x:hidden; touch-action: manipulation; }
   body {
     font-family: 'Segoe UI', system-ui, sans-serif;
     display:flex; flex-direction:column; align-items:center; justify-content:center;
@@ -82,6 +82,27 @@
   #restartBtn:active { transform: scale(.96); }
 
   #footer { margin-top:10px; font-size:11px; color:#5c6d82; text-align:center; }
+
+  /* Landscape on short-height screens (phones rotated) — compact everything
+     so it fits without clipping instead of relying on scroll. */
+  @media (orientation: landscape) and (max-height: 520px) {
+    body { padding: 6px; justify-content:flex-start; }
+    #wrap { max-width: 640px; }
+    #msg h1 { font-size:18px; }
+    #msg p { font-size:12px; margin-top:6px; }
+    #msg .hint { margin-top:10px; font-size:11px; }
+    #controls { margin-top: 8px; gap:6px; }
+    .avatarBtn { padding:6px 4px 5px; border-radius:8px; }
+    .avatarBtn .icon { font-size:18px; margin-bottom:1px; }
+    .avatarBtn .name { font-size:10px; }
+    .avatarBtn .key { font-size:8px; margin-top:0; }
+    #restartBtn { margin-top:8px; padding:6px 18px; font-size:13px; }
+    #footer { margin-top:4px; font-size:9px; }
+    #hud { top:6px; left:8px; right:8px; }
+    #score { font-size:16px; }
+    #eraName { font-size:11px; }
+    #eraTimerTrack { width:100px; }
+  }
 </style>
 </head>
 <body>
