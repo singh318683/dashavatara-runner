@@ -762,19 +762,25 @@
   // rather than just a different sky color. ---
 
   function drawSceneryMatsya(offset){
-    // storm clouds, upper background
-    ctx.fillStyle = 'rgba(15,25,45,.4)';
+    // storm clouds, upper background — soft radial gradient per cloud for a fluffier look
     [120, 420, 680].forEach(baseX=>{
       const x = (((baseX - offset*0.15) % (W+200)) + (W+200)) % (W+200) - 100;
+      const cloudGrad = ctx.createRadialGradient(x, 70, 5, x, 70, 75);
+      cloudGrad.addColorStop(0, 'rgba(45,60,85,.45)');
+      cloudGrad.addColorStop(1, 'rgba(15,25,45,.12)');
+      ctx.fillStyle = cloudGrad;
       ctx.beginPath();
       ctx.ellipse(x, 70, 55, 18, 0, 0, Math.PI*2);
       ctx.ellipse(x+40, 65, 35, 14, 0, 0, Math.PI*2);
       ctx.fill();
     });
-    // flooded rooftops poking above the water line
-    ctx.fillStyle = 'rgba(8,18,32,.55)';
+    // flooded rooftops poking above the water line — gradient for a lit top edge
     [80, 260, 500, 700, 850].forEach(baseX=>{
       const x = (((baseX - offset*0.4) % (W+150)) + (W+150)) % (W+150) - 75;
+      const roofGrad = ctx.createLinearGradient(x, 285, x, 320);
+      roofGrad.addColorStop(0, 'rgba(20,35,55,.55)');
+      roofGrad.addColorStop(1, 'rgba(6,14,26,.6)');
+      ctx.fillStyle = roofGrad;
       ctx.beginPath();
       ctx.moveTo(x-30, 320); ctx.lineTo(x, 285); ctx.lineTo(x+30, 320);
       ctx.closePath(); ctx.fill();
@@ -783,9 +789,13 @@
   }
 
   function drawSceneryKurma(offset){
-    // Mount Mandara, mostly static — very slow drift
+    // Mount Mandara, mostly static — very slow drift, gradient for a lit face
     const x = (((W/2 - offset*0.05) % (W+400)) + (W+400)) % (W+400) - 200;
-    ctx.fillStyle = 'rgba(20,15,10,.45)';
+    const mtGrad = ctx.createLinearGradient(x-140, 320, x+100, 90);
+    mtGrad.addColorStop(0, 'rgba(60,45,30,.5)');
+    mtGrad.addColorStop(.5, 'rgba(35,25,18,.45)');
+    mtGrad.addColorStop(1, 'rgba(15,10,8,.5)');
+    ctx.fillStyle = mtGrad;
     ctx.beginPath();
     ctx.moveTo(x-140, 320); ctx.lineTo(x, 90); ctx.lineTo(x+140, 320);
     ctx.closePath(); ctx.fill();
@@ -811,11 +821,14 @@
     ctx.fillStyle = grad;
     ctx.beginPath(); ctx.arc(700, 90, 90, 0, Math.PI*2); ctx.fill();
     ctx.restore();
-    // rock spires near the horizon
-    ctx.fillStyle = 'rgba(10,8,6,.5)';
+    // rock spires near the horizon — gradient so each catches a hint of light at the tip
     [60, 220, 380, 560, 760, 880].forEach((baseX, i)=>{
       const x = (((baseX - offset*0.3) % (W+120)) + (W+120)) % (W+120) - 60;
       const h = 40 + ((i % 3) * 20);
+      const rockGrad = ctx.createLinearGradient(x, 322-h, x, 322);
+      rockGrad.addColorStop(0, 'rgba(45,35,26,.6)');
+      rockGrad.addColorStop(1, 'rgba(8,6,5,.55)');
+      ctx.fillStyle = rockGrad;
       ctx.beginPath();
       ctx.moveTo(x-14, 322); ctx.lineTo(x, 322-h); ctx.lineTo(x+14, 322);
       ctx.closePath(); ctx.fill();
@@ -857,8 +870,16 @@
     ctx.save();
     ctx.translate(cx, cy);
     ctx.scale(s, s);
+    // soft ground shadow for a sense of weight/depth
+    ctx.fillStyle = 'rgba(0,0,0,.25)';
+    ctx.beginPath();
+    ctx.ellipse(0, 14, 13, 4, 0, 0, Math.PI*2);
+    ctx.fill();
     // tail fin
-    ctx.fillStyle = '#2f8fb0';
+    const finGrad = ctx.createLinearGradient(-23,-9,-13,9);
+    finGrad.addColorStop(0, '#1f6f8f');
+    finGrad.addColorStop(1, '#3fa8c8');
+    ctx.fillStyle = finGrad;
     ctx.beginPath();
     ctx.moveTo(-13, 0); ctx.lineTo(-23, -9); ctx.lineTo(-23, 9);
     ctx.closePath(); ctx.fill();
@@ -866,21 +887,35 @@
     ctx.beginPath();
     ctx.moveTo(-2, -9); ctx.lineTo(2, -16); ctx.lineTo(6, -9);
     ctx.closePath(); ctx.fill();
-    // body
-    ctx.fillStyle = '#f2c14e';
+    // body — radial gradient gives it roundness instead of a flat fill
+    const bodyGrad = ctx.createRadialGradient(-4,-4,2, 0,0,16);
+    bodyGrad.addColorStop(0, '#ffe9a8');
+    bodyGrad.addColorStop(.55, '#f2c14e');
+    bodyGrad.addColorStop(1, '#c98f1e');
+    ctx.fillStyle = bodyGrad;
     ctx.strokeStyle = '#b8860b';
-    ctx.lineWidth = 1.4;
+    ctx.lineWidth = 1.2;
     ctx.beginPath();
     ctx.ellipse(0, 0, 14, 9, 0, 0, Math.PI*2);
     ctx.fill(); ctx.stroke();
+    // glossy highlight
+    ctx.fillStyle = 'rgba(255,255,255,.55)';
+    ctx.beginPath();
+    ctx.ellipse(-5, -4, 4, 2.2, -0.4, 0, Math.PI*2);
+    ctx.fill();
     // gold crown (mukuta)
-    ctx.fillStyle = '#d4af37';
+    const crownGrad = ctx.createLinearGradient(8,-14,15,-7);
+    crownGrad.addColorStop(0, '#fff2c0');
+    crownGrad.addColorStop(1, '#d4af37');
+    ctx.fillStyle = crownGrad;
     ctx.beginPath();
     ctx.moveTo(8, -7); ctx.lineTo(12, -14); ctx.lineTo(15, -7);
     ctx.closePath(); ctx.fill();
-    // eye
+    // eye with catchlight
     ctx.fillStyle = '#1c1c1c';
-    ctx.beginPath(); ctx.arc(10, -1, 1.4, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(10, -1, 1.6, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(10.5, -1.6, 0.6, 0, Math.PI*2); ctx.fill();
     ctx.restore();
   }
 
@@ -888,39 +923,64 @@
     ctx.save();
     ctx.translate(cx, cy);
     ctx.scale(s, s);
+    // soft ground shadow
+    ctx.fillStyle = 'rgba(0,0,0,.25)';
+    ctx.beginPath();
+    ctx.ellipse(0, 13, 15, 4, 0, 0, Math.PI*2);
+    ctx.fill();
     // legs
-    ctx.fillStyle = '#4d7a3f';
+    const legGrad = ctx.createLinearGradient(0,-4,0,10);
+    legGrad.addColorStop(0, '#6fa85c');
+    legGrad.addColorStop(1, '#3a5f30');
+    ctx.fillStyle = legGrad;
     [[-9,9],[9,9],[-10,-3],[10,-3]].forEach(p=>{
       ctx.beginPath(); ctx.ellipse(p[0], p[1], 3, 3.8, 0, 0, Math.PI*2); ctx.fill();
     });
-    // shell
-    ctx.fillStyle = '#7ec98f';
+    // shell — radial gradient for a domed, rounded look
+    const shellGrad = ctx.createRadialGradient(-3,-6,3, 0,-2,18);
+    shellGrad.addColorStop(0, '#bdf0cf');
+    shellGrad.addColorStop(.5, '#7ec98f');
+    shellGrad.addColorStop(1, '#3f6b3a');
+    ctx.fillStyle = shellGrad;
     ctx.strokeStyle = '#3f6b3a';
-    ctx.lineWidth = 1.4;
+    ctx.lineWidth = 1.2;
     ctx.beginPath();
     ctx.ellipse(0, -2, 15, 10, 0, 0, Math.PI*2);
     ctx.fill(); ctx.stroke();
-    // shell pattern
-    ctx.strokeStyle = '#3f6b3a';
+    // shell pattern, softened
+    ctx.strokeStyle = 'rgba(63,107,58,.6)';
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(-9,-6); ctx.lineTo(-3,4);
     ctx.moveTo(0,-11); ctx.lineTo(0,7);
     ctx.moveTo(9,-6); ctx.lineTo(3,4);
     ctx.stroke();
-    // gold rim
-    ctx.strokeStyle = '#d4af37';
+    // gold rim with shine
+    const rimGrad = ctx.createLinearGradient(-15,-12,15,8);
+    rimGrad.addColorStop(0, '#fff2c0');
+    rimGrad.addColorStop(1, '#d4af37');
+    ctx.strokeStyle = rimGrad;
     ctx.lineWidth = 1.3;
     ctx.beginPath();
     ctx.ellipse(0, -2, 15, 10, 0, 0, Math.PI*2);
     ctx.stroke();
+    // glossy highlight on shell
+    ctx.fillStyle = 'rgba(255,255,255,.4)';
+    ctx.beginPath();
+    ctx.ellipse(-5, -7, 5, 2.5, -0.3, 0, Math.PI*2);
+    ctx.fill();
     // head
-    ctx.fillStyle = '#7ec98f';
+    const headGrad = ctx.createRadialGradient(14,-3,1, 15,-2,5);
+    headGrad.addColorStop(0, '#bdf0cf');
+    headGrad.addColorStop(1, '#5a9a63');
+    ctx.fillStyle = headGrad;
     ctx.beginPath();
     ctx.ellipse(15, -2, 4, 3.2, 0, 0, Math.PI*2);
     ctx.fill();
     ctx.fillStyle = '#1c1c1c';
-    ctx.beginPath(); ctx.arc(17, -3, 1, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(17, -3, 1.1, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(17.4, -3.5, 0.4, 0, Math.PI*2); ctx.fill();
     ctx.restore();
   }
 
@@ -928,26 +988,49 @@
     ctx.save();
     ctx.translate(cx, cy);
     ctx.scale(s, s);
+    // soft ground shadow
+    ctx.fillStyle = 'rgba(0,0,0,.25)';
+    ctx.beginPath();
+    ctx.ellipse(2, 12, 14, 4, 0, 0, Math.PI*2);
+    ctx.fill();
     // gold mane tuft
-    ctx.fillStyle = '#d4af37';
+    const maneGrad = ctx.createLinearGradient(-7,-16,1,-8);
+    maneGrad.addColorStop(0, '#fff2c0');
+    maneGrad.addColorStop(1, '#d4af37');
+    ctx.fillStyle = maneGrad;
     ctx.beginPath();
     ctx.moveTo(-7,-9); ctx.lineTo(-2,-16); ctx.lineTo(1,-8);
     ctx.closePath(); ctx.fill();
-    // body
-    ctx.fillStyle = '#5b4636';
+    // body — radial gradient for volume
+    const bodyGrad = ctx.createRadialGradient(-6,-4,2, -2,0,17);
+    bodyGrad.addColorStop(0, '#8a7058');
+    bodyGrad.addColorStop(.55, '#5b4636');
+    bodyGrad.addColorStop(1, '#2e2318');
+    ctx.fillStyle = bodyGrad;
     ctx.strokeStyle = '#3a2c22';
-    ctx.lineWidth = 1.4;
+    ctx.lineWidth = 1.2;
     ctx.beginPath();
     ctx.ellipse(-2, 0, 13, 10, 0, 0, Math.PI*2);
     ctx.fill(); ctx.stroke();
+    // glossy highlight
+    ctx.fillStyle = 'rgba(255,255,255,.28)';
+    ctx.beginPath();
+    ctx.ellipse(-7, -5, 4, 2, -0.4, 0, Math.PI*2);
+    ctx.fill();
     // gold necklace
-    ctx.strokeStyle = '#d4af37';
+    const neckGrad = ctx.createLinearGradient(2,6,10,7);
+    neckGrad.addColorStop(0, '#fff2c0');
+    neckGrad.addColorStop(1, '#d4af37');
+    ctx.strokeStyle = neckGrad;
     ctx.lineWidth = 1.4;
     ctx.beginPath();
     ctx.moveTo(2, 7); ctx.quadraticCurveTo(6, 10, 10, 6);
     ctx.stroke();
     // snout
-    ctx.fillStyle = '#6b5644';
+    const snoutGrad = ctx.createRadialGradient(10,0,1, 12,2,8);
+    snoutGrad.addColorStop(0, '#8a7058');
+    snoutGrad.addColorStop(1, '#4a3a2c');
+    ctx.fillStyle = snoutGrad;
     ctx.beginPath();
     ctx.ellipse(12, 2, 7, 5, 0, 0, Math.PI*2);
     ctx.fill();
@@ -957,9 +1040,11 @@
     ctx.lineCap = 'round';
     ctx.beginPath(); ctx.moveTo(15,5); ctx.quadraticCurveTo(20,11,17,14); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(17,3); ctx.quadraticCurveTo(23,7,20,11); ctx.stroke();
-    // eye
+    // eye with catchlight
     ctx.fillStyle = '#1c1c1c';
-    ctx.beginPath(); ctx.arc(10, -1, 1.3, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(10, -1, 1.5, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(10.5, -1.6, 0.5, 0, Math.PI*2); ctx.fill();
     ctx.restore();
   }
 
