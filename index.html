@@ -219,6 +219,7 @@
   let player, obstacles, speed, distance, lastSpawn, cooldownUntil, comboCount, animT;
   let eraIndex, eraCycle, eraElapsed, eraDuration, signatureSpawned, unlockedTypes;
   let transitionUntil;
+  let runElapsed; // total real playtime this run (excludes transition pauses) — drives the speed-ramp tier
 
   function currentEra(){ return ERA_DEFS[eraIndex]; }
 
@@ -235,6 +236,7 @@
     cooldownUntil = 0;
     comboCount = 0;
     animT = 0;
+    runElapsed = 0;
 
     eraIndex = 0;
     eraCycle = 0;
@@ -347,6 +349,14 @@
     restartBtn.style.display = 'inline-block';
   }
 
+  function currentRampRate(){
+    // New players get a long, gentle runway to learn the swap timing.
+    // Rate increases in tiers based on total time played this run, not per-era.
+    if(runElapsed < 90000) return 0.00003;   // 0-90s: speed ends ~6.9 (barely faster)
+    if(runElapsed < 240000) return 0.00006;  // 90s-4min: speed ends ~16
+    return 0.00025;                          // 4min+: full ramp for players who've stuck around
+  }
+
   function update(dt){
     if(state === 'transition'){
       if(performance.now() >= transitionUntil) endTransition();
@@ -355,10 +365,22 @@
     if(state !== 'playing') return;
 
     animT += dt;
+    runElapsed += dt;
+
+    // Speed never resets between eras (intentional — the whole run keeps
+    // escalating), but that means a fresh era can start well above where
+    // the last one began. Ease into the carried-over speed over the first
+    // 3s of each era so the transition doesn't feel like a sudden spike.
+    let effSpeed = speed;
+    if(eraElapsed < 3000){
+      const t = eraElapsed / 3000;
+      effSpeed = speed * (0.55 + 0.45 * t);
+    }
+
     // ~15 m/s at starting speed, scaling with speed as the run accelerates
-    distance += speed * dt * 0.0035;
-    // gentler global speed ramp — was jumping ~6x within the first era alone
-    speed += dt * 0.00025;
+    distance += effSpeed * dt * 0.0035;
+    // tiered ramp — gentle early, steeper the longer a run goes
+    speed += dt * currentRampRate();
     scoreEl.textContent = Math.floor(distance) + 'm';
 
     eraElapsed += dt;
@@ -396,7 +418,7 @@
 
     for(let i = obstacles.length -1; i>=0; i--){
       const o = obstacles[i];
-      o.x -= speed;
+      o.x -= effSpeed;
       if(!o.cleared && o.x < player.x + player.w && o.x + o.w > player.x){
         const needed = OBSTACLE_CLEAR[o.type];
         if(player.avatar === needed){
