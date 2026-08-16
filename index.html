@@ -53,6 +53,12 @@
   #transitionOverlay .icon { font-size:44px; display:block; margin-bottom:8px; }
   #transitionOverlay h2 { font-size:clamp(18px,4vw,26px); color:#f7d774; text-shadow:0 3px 10px rgba(0,0,0,.7); }
   #transitionOverlay p { margin-top:10px; font-size:clamp(12px,2.3vw,14px); color:#dce8e6; max-width:520px; line-height:1.5; }
+  #beginBtn {
+    margin-top:20px; padding:10px 30px; border-radius:20px; border:2px solid #f7d774;
+    background:#f7d774; color:#0a0f1e; font-weight:700; letter-spacing:.5px;
+    font-size:14px; cursor:pointer;
+  }
+  #beginBtn:active { transform: scale(.96); }
 
   #controls {
     display:flex; gap:10px; width:100%; max-width:900px; margin-top:14px;
@@ -133,6 +139,7 @@
       <span class="icon" id="tIcon">🐟</span>
       <h2 id="tTitle">Matsya — The Great Flood</h2>
       <p id="tFact">Matsya guided Manu's boat through a great flood to save all living beings.</p>
+      <button id="beginBtn">Begin</button>
     </div>
   </div>
 </div>
@@ -213,12 +220,10 @@
   const ERA_DURATION_CAP = 46000;
   const SIGNATURE_WINDOW = 7000;   // last N ms of era reserved for signature obstacle
   const WARMUP_WINDOW = 5000;      // first N ms of era, gentler spawn
-  const TRANSITION_MS = 2600;
 
   let state; // 'transition' | 'playing' | 'gameover'
   let player, obstacles, speed, distance, lastSpawn, cooldownUntil, comboCount, animT;
   let eraIndex, eraCycle, eraElapsed, eraDuration, signatureSpawned, unlockedTypes;
-  let transitionUntil;
   let runElapsed; // total real playtime this run (excludes transition pauses) — drives the speed-ramp tier
 
   function currentEra(){ return ERA_DEFS[eraIndex]; }
@@ -280,7 +285,6 @@
     tFact.textContent = era.fact;
 
     state = 'transition';
-    transitionUntil = performance.now() + TRANSITION_MS;
     transitionOverlay.style.display = 'flex';
   }
 
@@ -328,6 +332,11 @@
   });
   canvas.addEventListener('pointerdown', ()=>{ if(state === 'gameover') reset(); });
   restartBtn.addEventListener('pointerdown', reset);
+  const beginBtn = document.getElementById('beginBtn');
+  beginBtn.addEventListener('pointerdown', (e)=>{
+    e.stopPropagation();
+    if(state === 'transition') endTransition();
+  });
 
   function pickObstacleType(forceSignature){
     if(forceSignature) return currentEra().obstacleType;
@@ -376,8 +385,7 @@
 
   function update(dt){
     if(state === 'transition'){
-      if(performance.now() >= transitionUntil) endTransition();
-      return;
+      return; // waiting on the Begin button — see beginBtn listener
     }
     if(state !== 'playing') return;
 
