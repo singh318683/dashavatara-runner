@@ -892,6 +892,33 @@
 
   const AVATAR_DRAW = { matsya: drawMatsya, kurma: drawKurma, varaha: drawVaraha };
 
+  // Simplified, single-color icon for the small obstacle hint. The full
+  // illustrations read fine at player size, but shrink them down and the
+  // thin accent shapes (fins, tusks) read more clearly than the body color
+  // — so the icon skews the wrong color. This trades detail for instant,
+  // correctly-colored recognition, matching each avatar's button glow color.
+  function drawMiniIcon(key, cx, cy){
+    const meta = AVATAR_META[key];
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.fillStyle = meta.color;
+    ctx.beginPath();
+    ctx.arc(0, 0, 9, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,.92)';
+    if(key === 'matsya'){
+      ctx.beginPath(); ctx.ellipse(-1, 0, 4.3, 3, 0, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(-4.5,0); ctx.lineTo(-8.5,-3); ctx.lineTo(-8.5,3); ctx.closePath(); ctx.fill();
+    } else if(key === 'kurma'){
+      ctx.beginPath(); ctx.ellipse(0, 0, 5, 3.6, 0, 0, Math.PI*2); ctx.fill();
+    } else {
+      ctx.beginPath(); ctx.ellipse(0, 1, 4, 3, 0, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,.92)'; ctx.lineWidth = 1.4;
+      ctx.beginPath(); ctx.moveTo(2,2); ctx.lineTo(5,4); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
   function drawPlayer(){
     const meta = AVATAR_META[player.avatar];
     const bob = Math.sin(animT*0.012) * 3;
@@ -925,7 +952,7 @@
       const obLabel = currentLang === 'hi' ? meta.labelHi : meta.label;
       ctx.fillText(o.signature ? obLabel+' !!' : obLabel, o.x + o.w/2, o.y - 6);
       const need = OBSTACLE_CLEAR[o.type];
-      AVATAR_DRAW[need](o.x + o.w/2, o.y + (o.h/2) + 4, 0.55);
+      drawMiniIcon(need, o.x + o.w/2, o.y + (o.h/2) + 4);
     });
   }
 
