@@ -50,9 +50,14 @@
     align-items:center; justify-content:center; text-align:center;
     background: rgba(6,10,22,.72); border-radius:8px; padding: 0 24px;
   }
-  #transitionOverlay .icon { font-size:44px; display:block; margin-bottom:8px; }
-  #transitionOverlay h2 { font-size:clamp(18px,4vw,26px); color:#f7d774; text-shadow:0 3px 10px rgba(0,0,0,.7); }
-  #transitionOverlay p { margin-top:10px; font-size:clamp(12px,2.3vw,14px); color:#dce8e6; max-width:520px; line-height:1.5; }
+  #transitionOverlay .icon { font-size:44px; display:block; margin-bottom:6px; }
+  #transitionOverlay .tAvatarName { font-size:13px; letter-spacing:1.5px; text-transform:uppercase; color:#9fb4c9; }
+  #transitionOverlay h2 { font-size:clamp(18px,4vw,26px); color:#f7d774; text-shadow:0 3px 10px rgba(0,0,0,.7); margin-top:2px; }
+  #transitionOverlay .tLabel {
+    margin-top:14px; font-size:11px; letter-spacing:1px; text-transform:uppercase;
+    color:#f7d774; opacity:.85;
+  }
+  #transitionOverlay p { margin-top:5px; font-size:clamp(12px,2.3vw,14px); color:#dce8e6; max-width:520px; line-height:1.5; }
   #beginBtn {
     margin-top:20px; padding:10px 30px; border-radius:20px; border:2px solid #f7d774;
     background:#f7d774; color:#0a0f1e; font-weight:700; letter-spacing:.5px;
@@ -137,8 +142,12 @@
   <div id="transitionOverlay">
     <div>
       <span class="icon" id="tIcon">🐟</span>
-      <h2 id="tTitle">Matsya — The Great Flood</h2>
-      <p id="tFact">Matsya guided Manu's boat through a great flood to save all living beings.</p>
+      <div class="tAvatarName" id="tAvatarName">Matsya</div>
+      <h2 id="tEraName">The Great Flood</h2>
+      <div class="tLabel">What happened</div>
+      <p id="tDeed">Matsya guided Manu's boat through a great flood to save all living beings.</p>
+      <div class="tLabel">Fun fact</div>
+      <p id="tFunFact">—</p>
       <button id="beginBtn">Begin</button>
     </div>
   </div>
@@ -184,8 +193,10 @@
   const eraSecondsEl = document.getElementById('eraSeconds');
   const transitionOverlay = document.getElementById('transitionOverlay');
   const tIcon = document.getElementById('tIcon');
-  const tTitle = document.getElementById('tTitle');
-  const tFact = document.getElementById('tFact');
+  const tAvatarName = document.getElementById('tAvatarName');
+  const tEraName = document.getElementById('tEraName');
+  const tDeed = document.getElementById('tDeed');
+  const tFunFact = document.getElementById('tFunFact');
 
   const btns = { matsya: document.querySelector('[data-avatar="matsya"]'),
                  kurma:  document.querySelector('[data-avatar="kurma"]'),
@@ -207,12 +218,15 @@
 
   // --- Era definitions (time-based) ---
   const ERA_DEFS = [
-    { avatar:'matsya', title:'Matsya — The Great Flood', obstacleType:'watergap',
-      fact:'Matsya, the fish avatar, guided Manu\u2019s boat safely through a great flood to save all living beings.' },
-    { avatar:'kurma', title:'Kurma — Churning of the Ocean', obstacleType:'debris',
-      fact:'Kurma, the tortoise, held Mount Mandara steady on his back so gods and demons could churn the cosmic ocean.' },
-    { avatar:'varaha', title:'Varaha — Lifting the Earth', obstacleType:'rootwall',
-      fact:'Varaha, the boar, dove into the ocean and lifted the earth goddess safely on his tusks.' }
+    { avatar:'matsya', eraName:'The Great Deluge', obstacleType:'watergap',
+      deed:'Matsya guided Manu\u2019s boat, tied to the serpent Vasuki, safely through a cataclysmic flood \u2014 preserving all life, the seeds of every plant, and the Vedas themselves.',
+      funFact:'In the earliest telling (the Shatapatha Brahmana), Matsya isn\u2019t yet an avatar of Vishnu at all \u2014 that link was added later, in the Puranas.' },
+    { avatar:'kurma', eraName:'Churning of the Ocean of Milk', obstacleType:'debris',
+      deed:'Kurma held Mount Mandara steady on his back while gods and demons churned the cosmic ocean together to release Amrita, the nectar of immortality.',
+      funFact:'The churning also released Halahala, a poison so deadly that Shiva swallowed it to save all creation \u2014 which is why he\u2019s shown with a blue throat.' },
+    { avatar:'varaha', eraName:'Lifting the Earth', obstacleType:'rootwall',
+      deed:'Varaha dove to the bottom of the cosmic ocean and lifted the earth goddess Bhudevi safely on his tusks, after the demon Hiranyaksha had dragged her under.',
+      funFact:'Some Puranas describe Varaha at a truly cosmic scale \u2014 vast enough that his battle with Hiranyaksha is said to have lasted a thousand years.' }
   ];
 
   const ERA_BASE_DURATION = 26000; // ms, first cycle
@@ -281,8 +295,10 @@
     eraTimerFill.style.width = '100%';
     eraSecondsEl.textContent = Math.ceil(eraDuration/1000) + 's';
     tIcon.textContent = AVATAR_META[era.avatar].icon;
-    tTitle.textContent = era.title;
-    tFact.textContent = era.fact;
+    tAvatarName.textContent = AVATAR_META[era.avatar].label;
+    tEraName.textContent = era.eraName;
+    tDeed.textContent = era.deed;
+    tFunFact.textContent = era.funFact;
 
     state = 'transition';
     transitionOverlay.style.display = 'flex';
