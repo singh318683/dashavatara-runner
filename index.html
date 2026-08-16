@@ -464,20 +464,135 @@
     }
   }
 
+  // --- Custom-drawn avatars, styled toward traditional iconography rather
+  // than generic animal emoji: gold crown accents, Vishnu-associated blue/gold
+  // palette, and silhouette details specific to each avatar's myth. ---
+
+  function drawMatsya(cx, cy, s){
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.scale(s, s);
+    // tail fin
+    ctx.fillStyle = '#2f8fb0';
+    ctx.beginPath();
+    ctx.moveTo(-13, 0); ctx.lineTo(-23, -9); ctx.lineTo(-23, 9);
+    ctx.closePath(); ctx.fill();
+    // dorsal fin
+    ctx.beginPath();
+    ctx.moveTo(-2, -9); ctx.lineTo(2, -16); ctx.lineTo(6, -9);
+    ctx.closePath(); ctx.fill();
+    // body
+    ctx.fillStyle = '#f2c14e';
+    ctx.strokeStyle = '#b8860b';
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 14, 9, 0, 0, Math.PI*2);
+    ctx.fill(); ctx.stroke();
+    // gold crown (mukuta)
+    ctx.fillStyle = '#d4af37';
+    ctx.beginPath();
+    ctx.moveTo(8, -7); ctx.lineTo(12, -14); ctx.lineTo(15, -7);
+    ctx.closePath(); ctx.fill();
+    // eye
+    ctx.fillStyle = '#1c1c1c';
+    ctx.beginPath(); ctx.arc(10, -1, 1.4, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+
+  function drawKurma(cx, cy, s){
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.scale(s, s);
+    // legs
+    ctx.fillStyle = '#4d7a3f';
+    [[-9,9],[9,9],[-10,-3],[10,-3]].forEach(p=>{
+      ctx.beginPath(); ctx.ellipse(p[0], p[1], 3, 3.8, 0, 0, Math.PI*2); ctx.fill();
+    });
+    // shell
+    ctx.fillStyle = '#7ec98f';
+    ctx.strokeStyle = '#3f6b3a';
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.ellipse(0, -2, 15, 10, 0, 0, Math.PI*2);
+    ctx.fill(); ctx.stroke();
+    // shell pattern
+    ctx.strokeStyle = '#3f6b3a';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(-9,-6); ctx.lineTo(-3,4);
+    ctx.moveTo(0,-11); ctx.lineTo(0,7);
+    ctx.moveTo(9,-6); ctx.lineTo(3,4);
+    ctx.stroke();
+    // gold rim
+    ctx.strokeStyle = '#d4af37';
+    ctx.lineWidth = 1.3;
+    ctx.beginPath();
+    ctx.ellipse(0, -2, 15, 10, 0, 0, Math.PI*2);
+    ctx.stroke();
+    // head
+    ctx.fillStyle = '#7ec98f';
+    ctx.beginPath();
+    ctx.ellipse(15, -2, 4, 3.2, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = '#1c1c1c';
+    ctx.beginPath(); ctx.arc(17, -3, 1, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+
+  function drawVaraha(cx, cy, s){
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.scale(s, s);
+    // gold mane tuft
+    ctx.fillStyle = '#d4af37';
+    ctx.beginPath();
+    ctx.moveTo(-7,-9); ctx.lineTo(-2,-16); ctx.lineTo(1,-8);
+    ctx.closePath(); ctx.fill();
+    // body
+    ctx.fillStyle = '#5b4636';
+    ctx.strokeStyle = '#3a2c22';
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.ellipse(-2, 0, 13, 10, 0, 0, Math.PI*2);
+    ctx.fill(); ctx.stroke();
+    // gold necklace
+    ctx.strokeStyle = '#d4af37';
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.moveTo(2, 7); ctx.quadraticCurveTo(6, 10, 10, 6);
+    ctx.stroke();
+    // snout
+    ctx.fillStyle = '#6b5644';
+    ctx.beginPath();
+    ctx.ellipse(12, 2, 7, 5, 0, 0, Math.PI*2);
+    ctx.fill();
+    // tusks
+    ctx.strokeStyle = '#f5f0e6';
+    ctx.lineWidth = 2.1;
+    ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(15,5); ctx.quadraticCurveTo(20,11,17,14); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(17,3); ctx.quadraticCurveTo(23,7,20,11); ctx.stroke();
+    // eye
+    ctx.fillStyle = '#1c1c1c';
+    ctx.beginPath(); ctx.arc(10, -1, 1.3, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+
+  const AVATAR_DRAW = { matsya: drawMatsya, kurma: drawKurma, varaha: drawVaraha };
+
   function drawPlayer(){
     const meta = AVATAR_META[player.avatar];
     const bob = Math.sin(animT*0.012) * 3;
-    ctx.font = '30px system-ui';
-    ctx.textAlign = 'center';
+    const cx = player.x + player.w/2, cy = player.y + player.h/2 + bob + 6;
     ctx.shadowColor = meta.color;
-    ctx.shadowBlur = 18;
-    ctx.fillText(meta.icon, player.x + player.w/2, player.y + player.h + bob);
+    ctx.shadowBlur = 14;
+    AVATAR_DRAW[player.avatar](cx, cy, 1.15);
     ctx.shadowBlur = 0;
     const now = performance.now();
     if(now < cooldownUntil){
       ctx.strokeStyle = 'rgba(255,255,255,.3)';
       ctx.beginPath();
-      ctx.arc(player.x+player.w/2, player.y+player.h/2+bob, 26, 0, Math.PI*2);
+      ctx.arc(cx, cy, 26, 0, Math.PI*2);
       ctx.stroke();
     }
   }
@@ -497,8 +612,7 @@
       ctx.textAlign = 'center';
       ctx.fillText(o.signature ? meta.label+' !!' : meta.label, o.x + o.w/2, o.y - 6);
       const need = OBSTACLE_CLEAR[o.type];
-      ctx.font = '14px system-ui';
-      ctx.fillText(AVATAR_META[need].icon, o.x + o.w/2, o.y + (o.h/2) + 5);
+      AVATAR_DRAW[need](o.x + o.w/2, o.y + (o.h/2) + 4, 0.55);
     });
   }
 
