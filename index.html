@@ -357,6 +357,15 @@
     return 0.00025;                          // 4min+: full ramp for players who've stuck around
   }
 
+  function currentSpawnFloor(){
+    // Minimum ms between obstacle arrivals. Must stay comfortably above
+    // SWAP_COOLDOWN (450ms) or a correct swap becomes physically impossible
+    // if two different-avatar obstacles land back to back.
+    if(runElapsed < 90000) return 1000;
+    if(runElapsed < 240000) return 800;
+    return 650;
+  }
+
   function update(dt){
     if(state === 'transition'){
       if(performance.now() >= transitionUntil) endTransition();
@@ -388,11 +397,22 @@
     eraTimerFill.style.width = Math.max(0, (remain/eraDuration)*100) + '%';
     eraSecondsEl.textContent = Math.ceil(remain/1000) + 's';
 
-    // signature moment: once, inside the last SIGNATURE_WINDOW ms
-    if(!signatureSpawned && remain <= SIGNATURE_WINDOW && remain > SIGNATURE_WINDOW - 800){
-      spawnObstacle(currentEra().obstacleType, true);
-      signatureSpawned = true;
-      lastSpawn = 0; // avoid instantly double spawning
+    lastSpawn += dt;
+    const spawnFloor = currentSpawnFloor();
+
+    // Signature moment: fires once, inside a widened trigger span near era
+    // end. It waits for lastSpawn to clear the same floor as everything
+    // else so it never lands right on top of a just-spawned obstacle —
+    // except right at the very end of the span, where it force-fires to
+    // guarantee the beat still happens.
+    const SIGNATURE_SPAN = 1400;
+    if(!signatureSpawned && remain <= SIGNATURE_WINDOW && remain > SIGNATURE_WINDOW - SIGNATURE_SPAN){
+      const spanClosing = remain <= SIGNATURE_WINDOW - (SIGNATURE_SPAN - 150);
+      if(lastSpawn >= spawnFloor || spanClosing){
+        spawnObstacle(currentEra().obstacleType, true);
+        signatureSpawned = true;
+        lastSpawn = 0;
+      }
     }
 
     if(eraElapsed >= eraDuration){
@@ -400,7 +420,6 @@
       return;
     }
 
-    lastSpawn += dt;
     const inWarmup = eraElapsed < WARMUP_WINDOW;
     const inSignatureWindow = remain <= SIGNATURE_WINDOW;
     let spawnGap;
@@ -410,6 +429,7 @@
       const rampProgress = (eraElapsed - WARMUP_WINDOW) / Math.max(1, eraDuration - WARMUP_WINDOW - SIGNATURE_WINDOW);
       spawnGap = 1300 - Math.min(650, rampProgress*650); // tightens through the ramp
     }
+    spawnGap = Math.max(spawnGap, spawnFloor);
 
     if(lastSpawn > spawnGap){
       lastSpawn = 0;
