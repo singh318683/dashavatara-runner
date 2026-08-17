@@ -733,7 +733,18 @@
       btn.style.display = '';
       btn.dataset.avatar = a;
       const meta = AVATAR_META[a];
-      btn.querySelector('.icon').textContent = meta.icon;
+      const iconEl = btn.querySelector('.icon');
+      const spriteUri = SPRITE_URIS[a];
+      if(spriteUri){
+        iconEl.innerHTML = '';
+        const img = document.createElement('img');
+        img.src = spriteUri;
+        img.alt = meta.label;
+        img.style.cssText = 'height:28px;width:auto;display:block;margin:0 auto;';
+        iconEl.appendChild(img);
+      } else {
+        iconEl.textContent = meta.icon;
+      }
       btn.querySelector('.name').textContent = currentLang === 'hi' ? meta.labelHi : meta.label.toUpperCase();
       const hint = currentLang === 'hi' ? meta.keyHintHi : meta.keyHintEn;
       btn.querySelector('.key').textContent = `${i+1} · ${hint}`;
