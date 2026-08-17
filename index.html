@@ -1459,25 +1459,37 @@
     const cx = player.x + player.w/2, cy = player.y + player.h/2 + bob + 6;
     const img = SPRITE_IMAGES[player.avatar];
 
+    // Avatar render size is 2x the base scale, independent of the 34x34
+    // collision hitbox above — purely visual, doesn't touch difficulty.
+    // The character grows upward from its feet (shadow stays put at the
+    // original ground-contact point) rather than scaling from its center,
+    // so it doesn't look like it's sinking into the ground.
+    const SPRITE_SCALE = 2;
+    const oldHalfH = 23; // half of the old 46px sprite height / old placeholder radius
+    const footShift = oldHalfH * (SPRITE_SCALE - 1);
+    const dcx = cx, dcy = cy - footShift;
+
     // ground shadow beneath the sprite, for the same grounded feel the
-    // vector avatars had baked in
+    // vector avatars had baked in — stays anchored at the original spot
+    // and only grows a little, since it marks ground contact, not the
+    // character's visual height
     ctx.fillStyle = 'rgba(0,0,0,.28)';
     ctx.beginPath();
-    ctx.ellipse(cx, cy + 16, 15, 4, 0, 0, Math.PI*2);
+    ctx.ellipse(cx, cy + 16, 20, 5, 0, 0, Math.PI*2);
     ctx.fill();
 
     if(img && img.complete && img.naturalWidth > 0){
-      const targetH = 46;
+      const targetH = 46 * SPRITE_SCALE;
       const targetW = targetH * (img.naturalWidth / img.naturalHeight);
       ctx.shadowColor = meta.color;
       ctx.shadowBlur = 14;
-      ctx.drawImage(img, cx - targetW/2, cy - targetH/2, targetW, targetH);
+      ctx.drawImage(img, dcx - targetW/2, dcy - targetH/2, targetW, targetH);
       ctx.shadowBlur = 0;
     } else if(AVATAR_DRAW[player.avatar]){
       // sprite not loaded yet — fall back to the vector illustration
       ctx.shadowColor = meta.color;
       ctx.shadowBlur = 14;
-      AVATAR_DRAW[player.avatar](cx, cy, 1.15);
+      AVATAR_DRAW[player.avatar](dcx, dcy, 1.15 * SPRITE_SCALE);
       ctx.shadowBlur = 0;
     } else {
       // no sprite and no vector art yet (e.g. narasimha) — colored disc + icon
@@ -1485,20 +1497,20 @@
       ctx.shadowBlur = 14;
       ctx.fillStyle = meta.color;
       ctx.beginPath();
-      ctx.arc(cx, cy, 23, 0, Math.PI*2);
+      ctx.arc(dcx, dcy, 23 * SPRITE_SCALE, 0, Math.PI*2);
       ctx.fill();
       ctx.shadowBlur = 0;
-      ctx.font = '28px sans-serif';
+      ctx.font = (28 * SPRITE_SCALE) + 'px sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(meta.icon, cx, cy + 1);
+      ctx.fillText(meta.icon, dcx, dcy + 1);
     }
 
     const now = performance.now();
     if(now < cooldownUntil){
       ctx.strokeStyle = 'rgba(255,255,255,.3)';
       ctx.beginPath();
-      ctx.arc(cx, cy, 26, 0, Math.PI*2);
+      ctx.arc(dcx, dcy, 26 * SPRITE_SCALE, 0, Math.PI*2);
       ctx.stroke();
     }
   }
