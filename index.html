@@ -524,7 +524,12 @@
   // speed/distance/combo always restart from the same baseline so a level
   // jump plays at identical difficulty to level 1, just with a different
   // story/obstacle type.
-  function resetCore(startIdx){
+  // presetErasStarted lets a caller pre-seed the sliding window's growth
+  // counter before the first startEra() call increments it — used by
+  // jumpToLevel so jumping straight to e.g. level 4 shows the same 3-avatar
+  // window (Kurma/Varaha/Narasimha) a player would have from natural
+  // progression, rather than resetting to a freshly-grown window of 1.
+  function resetCore(startIdx, presetErasStarted){
     player = { x:120, y:GROUND_Y, w:34, h:34 };
     obstacles = [];
     speed = 4.2;
@@ -537,7 +542,7 @@
     particles = [];
 
     lastCompletedAvatar = null; // fresh run — no completion banner on first era shown
-    totalErasStarted = 0; // sliding window restarts empty; startEra -> updateActiveWindow grows it back
+    totalErasStarted = presetErasStarted || 0; // startEra -> updateActiveWindow increments this by 1
 
     msgEl.style.display = 'none';
     restartBtn.style.display = 'none';
@@ -555,11 +560,14 @@
   // jumpToLevel(idx) — testing helper: closes the level-select overlay and
   // restarts the run beginning at era `idx`, at the same starting speed as
   // level 1. Cycle is always reset to 0 so duration/difficulty matches a
-  // normal level-1 start regardless of which level was picked.
+  // normal level-1 start regardless of which level was picked. The sliding
+  // window is reconstructed to match what natural progression to this level
+  // would look like (e.g. jumping to level 4 shows Kurma/Varaha/Narasimha,
+  // with Matsya already retired, not a freshly-grown window of 1).
   function jumpToLevel(idx){
     if(idx < 0 || idx >= ERA_DEFS.length) return;
     closeLevelsOverlay();
-    resetCore(idx);
+    resetCore(idx, idx);
   }
 
   // Sliding window of active avatars: grows one-by-one for the first
