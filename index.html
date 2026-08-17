@@ -29,6 +29,7 @@
   }
   #score { font-size:20px; font-weight:700; color:#f7d774; text-shadow:0 2px 6px rgba(0,0,0,.6); }
   #combo { font-size:13px; color:#8fe3c8; margin-top:2px; min-height:16px; }
+  #chakraIndicator { font-size:13px; color:#f7d774; margin-top:2px; font-weight:700; letter-spacing:.3px; }
   #eraBox { text-align:right; }
   #eraName { font-size:13px; font-weight:700; color:#f2e9d8; text-shadow:0 2px 6px rgba(0,0,0,.6); }
   #eraTimerTrack {
@@ -213,6 +214,7 @@
     <div>
       <div id="score">0m</div>
       <div id="combo"></div>
+      <div id="chakraIndicator" style="display:none;"></div>
     </div>
     <div id="eraBox">
       <div id="eraName">Matsya</div>
@@ -435,6 +437,9 @@
       cleared:'Cleared!',
       combo:(n)=>`Combo x${n}`,
       signatureCleared:'Signature cleared!',
+      chakraCharges:(n)=>`Chakra x${n}`,
+      chakraPickup:'Chakra! 2 free clears',
+      chakraSaved:'Chakra saved you!',
       toggleLabel:'हिं',
       levelsToggle:'Levels',
       levelsTitle:'Jump to Level'
@@ -458,6 +463,9 @@
       cleared:'पार हुआ!',
       combo:(n)=>`कॉम्बो x${n}`,
       signatureCleared:'विशेष क्षण पार हुआ!',
+      chakraCharges:(n)=>`चक्र x${n}`,
+      chakraPickup:'चक्र! 2 मुफ़्त पार',
+      chakraSaved:'चक्र ने बचाया!',
       toggleLabel:'EN',
       levelsToggle:'लेवल',
       levelsTitle:'लेवल चुनें'
@@ -589,6 +597,29 @@
   let flashStart = -Infinity;  // timestamp of last wrong-form flash, drawn purely from elapsed time
   let shakeStart = -Infinity;  // timestamp of last wrong-form shake, same reasoning
   let failMark = null;         // { x, y, start } for the fading X mark on a wrong-form hit, or null
+
+  // Chakra power-up: an occasional pickup (any avatar can grab it, no type
+  // matching needed) that grants a couple of "free clears" — while
+  // chakraCharges > 0, the next wrong-form obstacle hit is forgiven instead
+  // of ending the run, consuming one charge. Persists across era
+  // transitions within a run (reset only on a fresh run/level jump).
+  let powerups = [];
+  let chakraCharges = 0;
+  let lastPowerupSpawn = 0; // ms since last chakra spawn attempt, for pacing
+  let nextPowerupGap = 11000 + Math.random() * 6000; // randomized interval until the next eligible spawn
+  const CHAKRA_CHARGE_GRANT = 2;
+  const CHAKRA_CHARGE_CAP = 4;
+  const chakraIndicatorEl = document.getElementById('chakraIndicator');
+
+  function updateChakraIndicator(){
+    if(chakraCharges > 0){
+      chakraIndicatorEl.style.display = '';
+      chakraIndicatorEl.textContent = t().chakraCharges(chakraCharges);
+    } else {
+      chakraIndicatorEl.style.display = 'none';
+    }
+  }
+
   const storyCaptionEl = document.getElementById('storyCaption');
   let captionHideTimeout = null;
 
@@ -669,6 +700,11 @@
 
     lastCompletedAvatar = null; // fresh run — no completion banner on first era shown
     totalErasStarted = presetErasStarted || 0; // startEra -> updateActiveWindow increments this by 1
+    powerups = [];
+    chakraCharges = 0;
+    lastPowerupSpawn = 0;
+    nextPowerupGap = 11000 + Math.random() * 6000;
+    updateChakraIndicator();
 
     msgEl.style.display = 'none';
     restartBtn.style.display = 'none';
@@ -772,6 +808,7 @@
     // overlay, then resumes the instant play resumes — sometimes already
     // right on top of the player with no warning.
     obstacles.length = 0;
+    powerups.length = 0;
     lastSpawn = 0;
 
     canvas.style.background = BG_THEMES[currentEra().avatar];
@@ -995,6 +1032,7 @@
     beginBtn.textContent = t().begin;
     restartBtn.textContent = t().runAgain;
     document.getElementById('footer').textContent = t().footer;
+    updateChakraIndicator();
     renderAvatarButtons();
     // Re-render whatever dynamic screen is currently showing
     if(state === 'transition') renderTransitionText();
@@ -1028,6 +1066,15 @@
       h: meta.h + (big ? 14 : 0),
       y: GROUND_Y + 34 - (meta.h + (big ? 14 : 0)),
       cleared:false, signature: !!big
+    });
+  }
+
+  function spawnPowerup(){
+    const w = 30, h = 30;
+    powerups.push({
+      x: W + 40, w, h,
+      y: GROUND_Y + 34 - h - 24, // floats above the obstacle band, visually distinct from a wall
+      collected: false
     });
   }
 
@@ -1166,6 +1213,30 @@
       spawnObstacle(pickObstacleType(false), false);
     }
 
+    // Chakra power-up: spawns occasionally (roughly every 11-17s of active
+    // play), never during the warmup or right at era end, and never while
+    // one is already on screen — keeps it a rare, noticeable event rather
+    // than clutter.
+    lastPowerupSpawn += dt;
+    if(powerups.length === 0 && !inWarmup && remain > 4000 && lastPowerupSpawn > nextPowerupGap){
+      spawnPowerup();
+      lastPowerupSpawn = 0;
+      nextPowerupGap = 11000 + Math.random() * 6000;
+    }
+
+    for(let i = powerups.length - 1; i >= 0; i--){
+      const p = powerups[i];
+      p.x -= effSpeed;
+      if(!p.collected && p.x < player.x + player.w && p.x + p.w > player.x){
+        p.collected = true;
+        chakraCharges = Math.min(CHAKRA_CHARGE_CAP, chakraCharges + CHAKRA_CHARGE_GRANT);
+        updateChakraIndicator();
+        comboEl.textContent = t().chakraPickup;
+        spawnSuccessBurst(p.x + p.w/2, p.y + p.h/2);
+      }
+      if(p.collected || p.x < -70) powerups.splice(i,1);
+    }
+
     for(let i = obstacles.length -1; i>=0; i--){
       const o = obstacles[i];
       o.x -= effSpeed;
@@ -1175,6 +1246,13 @@
           o.cleared = true;
           comboCount++;
           comboEl.textContent = o.signature ? t().signatureCleared : (comboCount > 1 ? t().combo(comboCount) : t().cleared);
+          spawnSuccessBurst(o.x + o.w/2, o.y + o.h/2);
+        } else if(chakraCharges > 0){
+          chakraCharges--;
+          updateChakraIndicator();
+          o.cleared = true;
+          comboCount++;
+          comboEl.textContent = t().chakraSaved;
           spawnSuccessBurst(o.x + o.w/2, o.y + o.h/2);
         } else {
           endRun(needed);
@@ -1628,6 +1706,47 @@
     });
   }
 
+  function drawPowerups(){
+    powerups.forEach(p=>{
+      const cx = p.x + p.w/2;
+      const bob = Math.sin((animT + p.x) * 0.006) * 4;
+      const cy = p.y + p.h/2 + bob;
+      const r = p.w/2;
+      const rotation = animT * 0.003;
+
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(rotation);
+      ctx.shadowColor = '#f7d774';
+      ctx.shadowBlur = 12;
+      ctx.fillStyle = '#f7d774';
+      const spikeCount = 8;
+      for(let i = 0; i < spikeCount; i++){
+        ctx.save();
+        ctx.rotate((Math.PI*2/spikeCount) * i);
+        ctx.beginPath();
+        ctx.moveTo(0, -r*0.55);
+        ctx.lineTo(r*0.16, -r*0.95);
+        ctx.lineTo(-r*0.16, -r*0.95);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
+      ctx.shadowBlur = 0;
+      const grad = ctx.createRadialGradient(0,0,1,0,0,r*0.6);
+      grad.addColorStop(0, '#fff2c0');
+      grad.addColorStop(1, '#d4af37');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(0, 0, r*0.55, 0, Math.PI*2);
+      ctx.fill();
+      ctx.strokeStyle = '#8a6a1e';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.restore();
+    });
+  }
+
   function drawSparkle(cx, cy, size, color, alpha){
     ctx.save();
     ctx.globalAlpha = alpha;
@@ -1677,6 +1796,7 @@
     drawParticles();
     if(state === 'playing'){
       drawObstacles();
+      drawPowerups();
       drawPlayer();
     } else if(state === 'transition' || state === 'levelComplete'){
       drawPlayer();
