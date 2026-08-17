@@ -52,6 +52,13 @@
     letter-spacing:.5px; cursor:pointer;
   }
   #levelsToggle:active { transform: scale(.94); }
+  #muteToggle {
+    position:absolute; top:8px; right:120px; z-index:20;
+    padding:5px 10px; border-radius:14px; border:1.5px solid #f7d774;
+    background:rgba(10,15,30,.7); color:#f7d774; font-size:13px; font-weight:700;
+    letter-spacing:.5px; cursor:pointer;
+  }
+  #muteToggle:active { transform: scale(.94); }
   #eraBox { margin-top:24px; }
   #storyCaption {
     position:absolute; top:54%; left:50%; transform:translate(-50%, -50%);
@@ -178,6 +185,7 @@
     #eraTimerTrack { width:100px; }
     #langToggle { top:6px; right:6px; padding:4px 10px; font-size:10px; }
     #levelsToggle { top:6px; right:56px; padding:4px 10px; font-size:10px; }
+    #muteToggle { top:6px; right:104px; padding:4px 8px; font-size:11px; }
     #eraBox { margin-top:20px; }
 
     /* The transition card (icon, labels, two paragraphs, banner, button)
@@ -208,6 +216,7 @@
 
   <button id="langToggle">हिं</button>
   <button id="levelsToggle">Levels</button>
+  <button id="muteToggle">🔊</button>
   <div id="storyCaption"></div>
 
   <div id="hud">
@@ -302,6 +311,170 @@
 
   const langToggle = document.getElementById('langToggle');
   const levelsToggle = document.getElementById('levelsToggle');
+  const muteToggle = document.getElementById('muteToggle');
+
+  // ==========================================================================
+  // Procedural audio (Web Audio API) — no external files. Three short SFX
+  // (avatar swap, obstacle clear, game over) plus a subtle looping ambient
+  // drone + simple percussion pulse for background music. AudioContext can
+  // only start after a user gesture in every modern browser, so it's
+  // created lazily on the first pointerdown anywhere on the page.
+  // ==========================================================================
+  let audioCtx = null;
+  let masterGain = null, musicGain = null, sfxGain = null;
+  let muted = false;
+  let musicStarted = false;
+
+  function ensureAudioGraph(){
+    if(audioCtx) return;
+    const Ctor = window.AudioContext || window.webkitAudioContext;
+    if(!Ctor) return; // very old browser — sound simply won't play, game still works
+    try {
+      audioCtx = new Ctor();
+      masterGain = audioCtx.createGain();
+      masterGain.gain.value = muted ? 0 : 1;
+      masterGain.connect(audioCtx.destination);
+      musicGain = audioCtx.createGain();
+      musicGain.gain.value = 0.1; // subtle — background music should never fight the SFX
+      musicGain.connect(masterGain);
+      sfxGain = audioCtx.createGain();
+      sfxGain.gain.value = 0.55;
+      sfxGain.connect(masterGain);
+    } catch(e) {
+      // audio unavailable for any reason (blocked permissions, no device,
+      // restrictive embed context, etc.) — game still fully works without sound
+      audioCtx = null;
+    }
+  }
+
+  function unlockAudio(){
+    ensureAudioGraph();
+    if(!audioCtx) return;
+    if(audioCtx.state === 'suspended') audioCtx.resume();
+    if(!musicStarted){
+      musicStarted = true;
+      startAmbientDrone();
+      startPercussionLoop();
+    }
+  }
+
+  // --- SFX ---
+
+  function playSwapSound(){
+    if(!audioCtx) return;
+    const t0 = audioCtx.currentTime;
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.type = 'triangle';
+    o.frequency.setValueAtTime(520, t0);
+    o.frequency.exponentialRampToValueAtTime(1040, t0 + 0.09);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(0.35, t0 + 0.015);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.14);
+    o.connect(g); g.connect(sfxGain);
+    o.start(t0); o.stop(t0 + 0.16);
+  }
+
+  function playClearSound(){
+    if(!audioCtx) return;
+    const t0 = audioCtx.currentTime;
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(180, t0);
+    o.frequency.exponentialRampToValueAtTime(70, t0 + 0.22);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(0.5, t0 + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.3);
+    o.connect(g); g.connect(sfxGain);
+    o.start(t0); o.stop(t0 + 0.32);
+  }
+
+  function playGameOverSound(){
+    if(!audioCtx) return;
+    const t0 = audioCtx.currentTime;
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    const filter = audioCtx.createBiquadFilter();
+    o.type = 'sawtooth';
+    o.frequency.setValueAtTime(440, t0);
+    o.frequency.exponentialRampToValueAtTime(60, t0 + 0.9);
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(2200, t0);
+    filter.frequency.exponentialRampToValueAtTime(200, t0 + 0.9);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(0.4, t0 + 0.05);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + 1.0);
+    o.connect(filter); filter.connect(g); g.connect(sfxGain);
+    o.start(t0); o.stop(t0 + 1.0);
+  }
+
+  // --- Background music: ambient drone + light percussion pulse ---
+
+  function startAmbientDrone(){
+    // a simple sustained root/fifth/octave chord, very quiet, slow fade-in —
+    // an epic, meditative backdrop rather than a melody
+    const t0 = audioCtx.currentTime;
+    const voices = [
+      { freq: 110,    type: 'sine',     peak: 0.05 },
+      { freq: 164.81, type: 'triangle', peak: 0.025 },
+      { freq: 220,    type: 'sine',     peak: 0.018 }
+    ];
+    voices.forEach(v=>{
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.type = v.type;
+      o.frequency.value = v.freq;
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.linearRampToValueAtTime(v.peak, t0 + 3);
+      o.connect(g); g.connect(musicGain);
+      o.start(t0);
+    });
+  }
+
+  let percussionTimer = null;
+  function startPercussionLoop(){
+    let beat = 0;
+    const beatMs = 640; // slow, unobtrusive pulse — roughly a resting-heart tempo
+    function playBeat(){
+      if(audioCtx){
+        const t0 = audioCtx.currentTime;
+        const strong = beat % 2 === 0; // simple strong/soft tabla-like alternation
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        o.type = strong ? 'sine' : 'triangle';
+        o.frequency.setValueAtTime(strong ? 92 : 260, t0);
+        o.frequency.exponentialRampToValueAtTime(strong ? 55 : 175, t0 + 0.12);
+        g.gain.setValueAtTime(0.0001, t0);
+        g.gain.exponentialRampToValueAtTime(strong ? 0.16 : 0.07, t0 + 0.008);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + (strong ? 0.18 : 0.09));
+        o.connect(g); g.connect(musicGain);
+        o.start(t0); o.stop(t0 + 0.2);
+      }
+      beat++;
+    }
+    playBeat();
+    percussionTimer = setInterval(playBeat, beatMs);
+  }
+
+  muteToggle.addEventListener('pointerdown', (e)=>{
+    e.stopPropagation();
+    unlockAudio(); // in case this is the very first tap
+    muted = !muted;
+    muteToggle.textContent = muted ? '🔇' : '🔊';
+    if(masterGain) masterGain.gain.value = muted ? 0 : 1;
+  });
+
+  // AudioContext can only start on a user gesture — this fires once on the
+  // very first tap anywhere (capture phase, so it runs before any other
+  // pointerdown handler) and never again.
+  window.addEventListener('pointerdown', unlockAudio, { capture: true, once: true });
+  // Some browsers auto-suspend the context if the tab loses focus for a
+  // while — cheaply nudge it awake on any later tap too.
+  window.addEventListener('pointerdown', ()=>{
+    if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  });
+
   const levelsOverlay = document.getElementById('levelsOverlay');
   const levelsCard = document.getElementById('levelsCard');
   const levelGrid = document.getElementById('levelGrid');
@@ -930,6 +1103,7 @@
     player.avatar = avatar;
     cooldownUntil = now + SWAP_COOLDOWN;
     updateBtnStates();
+    playSwapSound();
   }
 
   function updateBtnStates(){
@@ -1086,6 +1260,7 @@
     msgEl.style.display = 'block';
     renderGameOverText();
     restartBtn.style.display = 'inline-block';
+    playGameOverSound();
 
     const now = performance.now();
     flashStart = now;
@@ -1247,6 +1422,7 @@
           comboCount++;
           comboEl.textContent = o.signature ? t().signatureCleared : (comboCount > 1 ? t().combo(comboCount) : t().cleared);
           spawnSuccessBurst(o.x + o.w/2, o.y + o.h/2);
+          playClearSound();
         } else if(chakraCharges > 0){
           chakraCharges--;
           updateChakraIndicator();
@@ -1254,6 +1430,7 @@
           comboCount++;
           comboEl.textContent = t().chakraSaved;
           spawnSuccessBurst(o.x + o.w/2, o.y + o.h/2);
+          playClearSound();
         } else {
           endRun(needed);
           return;
