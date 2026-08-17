@@ -311,6 +311,9 @@
   const btnSlots = [document.getElementById('avatarSlot0'), document.getElementById('avatarSlot1'), document.getElementById('avatarSlot2')];
 
   const SWAP_COOLDOWN = 450;
+  const SPRITE_SCALE = 2; // avatar render size, shared by the player sprite AND
+                           // the obstacle "which avatar do I need" figures, so
+                           // they always stay the same size as each other
   const AVATARS = ['matsya','kurma','varaha','narasimha','vamana','parashurama','rama','krishna','buddha','kalki'];
   const ACTIVE_WINDOW = 3; // max avatars selectable at once; oldest retires as a new one unlocks
   const AVATAR_META = {
@@ -1459,12 +1462,12 @@
     const cx = player.x + player.w/2, cy = player.y + player.h/2 + bob + 6;
     const img = SPRITE_IMAGES[player.avatar];
 
-    // Avatar render size is 2x the base scale, independent of the 34x34
-    // collision hitbox above — purely visual, doesn't touch difficulty.
-    // The character grows upward from its feet (shadow stays put at the
-    // original ground-contact point) rather than scaling from its center,
-    // so it doesn't look like it's sinking into the ground.
-    const SPRITE_SCALE = 2;
+    // Avatar render size is 2x the base scale (SPRITE_SCALE, shared with the
+    // obstacle avatar figures below), independent of the 34x34 collision
+    // hitbox above — purely visual, doesn't touch difficulty. The character
+    // grows upward from its feet (shadow stays put at the original
+    // ground-contact point) rather than scaling from its center, so it
+    // doesn't look like it's sinking into the ground.
     const oldHalfH = 23; // half of the old 46px sprite height / old placeholder radius
     const footShift = oldHalfH * (SPRITE_SCALE - 1);
     const dcx = cx, dcy = cy - footShift;
@@ -1533,11 +1536,14 @@
       // The obstacle is shaped like the avatar you need to become — draw
       // that avatar's real sprite standing on the block instead of a tiny
       // abstract icon, so the required form is instantly recognizable (same
-      // art already used for the player and the avatar buttons). Falls back
-      // to the old mini vector icon only if that sprite hasn't loaded yet.
+      // art already used for the player and the avatar buttons). Rendered
+      // at exactly the same size as the player sprite (46*SPRITE_SCALE) so
+      // "what you need to become" always matches "what you'll look like"
+      // once you do. Falls back to the old mini vector icon only if that
+      // sprite hasn't loaded yet.
       let labelOvershoot = 0;
       if(needImg && needImg.complete && needImg.naturalWidth > 0){
-        const iconH = Math.min(50, Math.max(32, o.h + 6));
+        const iconH = 46 * SPRITE_SCALE;
         const iconW = iconH * (needImg.naturalWidth / needImg.naturalHeight);
         labelOvershoot = Math.max(0, iconH - o.h);
         ctx.globalAlpha = o.cleared ? 0.35 : 1;
