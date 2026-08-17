@@ -1518,6 +1518,10 @@
   function drawObstacles(){
     obstacles.forEach(o=>{
       const meta = OBSTACLE_META[o.type];
+      const need = OBSTACLE_CLEAR[o.type];
+      const needImg = SPRITE_IMAGES[need];
+      const cx = o.x + o.w/2;
+
       ctx.fillStyle = o.cleared ? 'rgba(120,200,150,.35)' : meta.color;
       ctx.fillRect(o.x, o.y, o.w, o.h);
       if(o.signature){
@@ -1525,13 +1529,29 @@
         ctx.lineWidth = 3;
         ctx.strokeRect(o.x-2, o.y-2, o.w+4, o.h+4);
       }
+
+      // The obstacle is shaped like the avatar you need to become — draw
+      // that avatar's real sprite standing on the block instead of a tiny
+      // abstract icon, so the required form is instantly recognizable (same
+      // art already used for the player and the avatar buttons). Falls back
+      // to the old mini vector icon only if that sprite hasn't loaded yet.
+      let labelOvershoot = 0;
+      if(needImg && needImg.complete && needImg.naturalWidth > 0){
+        const iconH = Math.min(50, Math.max(32, o.h + 6));
+        const iconW = iconH * (needImg.naturalWidth / needImg.naturalHeight);
+        labelOvershoot = Math.max(0, iconH - o.h);
+        ctx.globalAlpha = o.cleared ? 0.35 : 1;
+        ctx.drawImage(needImg, cx - iconW/2, o.y + o.h - iconH, iconW, iconH);
+        ctx.globalAlpha = 1;
+      } else {
+        drawMiniIcon(need, cx, o.y + (o.h/2) + 4);
+      }
+
       ctx.fillStyle = '#fff';
       ctx.font = '10px sans-serif';
       ctx.textAlign = 'center';
       const obLabel = currentLang === 'hi' ? meta.labelHi : meta.label;
-      ctx.fillText(o.signature ? obLabel+' !!' : obLabel, o.x + o.w/2, o.y - 6);
-      const need = OBSTACLE_CLEAR[o.type];
-      drawMiniIcon(need, o.x + o.w/2, o.y + (o.h/2) + 4);
+      ctx.fillText(o.signature ? obLabel+' !!' : obLabel, cx, o.y - labelOvershoot - 6);
     });
   }
 
