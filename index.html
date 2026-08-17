@@ -44,6 +44,13 @@
     letter-spacing:.5px; cursor:pointer;
   }
   #langToggle:active { transform: scale(.94); }
+  #levelsToggle {
+    position:absolute; top:8px; right:64px; z-index:20;
+    padding:5px 12px; border-radius:14px; border:1.5px solid #f7d774;
+    background:rgba(10,15,30,.7); color:#f7d774; font-size:11px; font-weight:700;
+    letter-spacing:.5px; cursor:pointer;
+  }
+  #levelsToggle:active { transform: scale(.94); }
   #eraBox { margin-top:24px; }
   #storyCaption {
     position:absolute; top:54%; left:50%; transform:translate(-50%, -50%);
@@ -91,6 +98,34 @@
     font-size:14px; cursor:pointer;
   }
   #beginBtn:active { transform: scale(.96); }
+
+  #levelsOverlay {
+    position:absolute; inset:0; z-index:15; display:none;
+    align-items:center; justify-content:center;
+    background: rgba(6,10,22,.82); border-radius:8px; padding: 0 24px;
+  }
+  #levelsCard {
+    background: rgba(16,24,44,.96); border:1.5px solid #f7d774;
+    border-radius:14px; padding:18px 20px; max-width:420px; width:100%;
+    box-shadow: 0 10px 40px rgba(0,0,0,.6);
+  }
+  #levelsCard h3 {
+    color:#f7d774; font-size:16px; margin-bottom:12px; text-align:center;
+    letter-spacing:.5px;
+  }
+  #levelGrid {
+    display:grid; grid-template-columns: repeat(3, 1fr); gap:10px;
+  }
+  .levelBtn {
+    display:flex; flex-direction:column; align-items:center; gap:4px;
+    padding:10px 6px; border-radius:10px; border:2px solid #3a4f66;
+    background: linear-gradient(180deg,#16233d,#0e1728);
+    color:#e8dcc0; cursor:pointer; user-select:none;
+    transition: border-color .15s, transform .08s;
+  }
+  .levelBtn:active { transform: scale(.95); }
+  .levelBtn .lvlIcon { font-size:20px; }
+  .levelBtn .lvlName { font-size:10px; font-weight:600; text-align:center; }
 
   #controls {
     display:flex; gap:10px; width:100%; max-width:900px; margin-top:14px;
@@ -141,6 +176,7 @@
     #eraName { font-size:11px; }
     #eraTimerTrack { width:100px; }
     #langToggle { top:6px; right:6px; padding:4px 10px; font-size:10px; }
+    #levelsToggle { top:6px; right:56px; padding:4px 10px; font-size:10px; }
     #eraBox { margin-top:20px; }
 
     /* The transition card (icon, labels, two paragraphs, banner, button)
@@ -156,6 +192,11 @@
     #transitionOverlay p { margin-top:2px; font-size:11px; line-height:1.3; }
     #beginBtn { margin-top:6px; padding:5px 18px; font-size:12px; }
     #storyCaption { font-size:11px; padding:3px 10px; }
+    #levelsCard { padding:12px 14px; }
+    #levelsCard h3 { font-size:13px; margin-bottom:8px; }
+    .levelBtn { padding:6px 4px; }
+    .levelBtn .lvlIcon { font-size:15px; }
+    .levelBtn .lvlName { font-size:8px; }
   }
 </style>
 </head>
@@ -165,6 +206,7 @@
   <canvas id="game" width="900" height="400"></canvas>
 
   <button id="langToggle">हिं</button>
+  <button id="levelsToggle">Levels</button>
   <div id="storyCaption"></div>
 
   <div id="hud">
@@ -199,6 +241,13 @@
       <div class="tLabel">Fun fact</div>
       <p id="tFunFact">—</p>
       <button id="beginBtn">Begin</button>
+    </div>
+  </div>
+
+  <div id="levelsOverlay">
+    <div id="levelsCard">
+      <h3 id="levelsTitle">Jump to Level</h3>
+      <div id="levelGrid"></div>
     </div>
   </div>
 </div>
@@ -250,6 +299,11 @@
   const tFunFact = document.getElementById('tFunFact');
 
   const langToggle = document.getElementById('langToggle');
+  const levelsToggle = document.getElementById('levelsToggle');
+  const levelsOverlay = document.getElementById('levelsOverlay');
+  const levelsCard = document.getElementById('levelsCard');
+  const levelGrid = document.getElementById('levelGrid');
+  const levelsTitle = document.getElementById('levelsTitle');
 
   const btns = { matsya: document.querySelector('[data-avatar="matsya"]'),
                  kurma:  document.querySelector('[data-avatar="kurma"]'),
@@ -322,7 +376,9 @@
       cleared:'Cleared!',
       combo:(n)=>`Combo x${n}`,
       signatureCleared:'Signature cleared!',
-      toggleLabel:'हिं'
+      toggleLabel:'हिं',
+      levelsToggle:'Levels',
+      levelsTitle:'Jump to Level'
     },
     hi: {
       gameTitle:'दशावतार रनर',
@@ -341,7 +397,9 @@
       cleared:'पार हुआ!',
       combo:(n)=>`कॉम्बो x${n}`,
       signatureCleared:'विशेष क्षण पार हुआ!',
-      toggleLabel:'EN'
+      toggleLabel:'EN',
+      levelsToggle:'लेवल',
+      levelsTitle:'लेवल चुनें'
     }
   };
   function t(){ return I18N[currentLang]; }
@@ -433,7 +491,13 @@
     return Math.min(ERA_DURATION_CAP, ERA_BASE_DURATION + eraCycle * ERA_DURATION_STEP);
   }
 
-  function reset(){
+  // resetCore(startIdx) — shared reset logic used both by a fresh run
+  // (reset()) and by jumping directly to a level for testing
+  // (jumpToLevel()). startIdx selects which era in ERA_DEFS to begin at;
+  // speed/distance/combo always restart from the same baseline so a level
+  // jump plays at identical difficulty to level 1, just with a different
+  // story/obstacle type.
+  function resetCore(startIdx){
     player = { x:120, y:GROUND_Y, w:34, h:34 };
     obstacles = [];
     speed = 4.2;
@@ -445,9 +509,7 @@
     runElapsed = 0;
     particles = [];
 
-    eraIndex = 0;
-    eraCycle = 0;
-    lastCompletedAvatar = null; // fresh run — no completion banner on the very first era
+    lastCompletedAvatar = null; // fresh run — no completion banner on first era shown
     // All three avatars are already unlocked in this prototype, so every
     // obstacle type is in play from second one — era only weights which
     // type shows up more, it doesn't gate which types can appear.
@@ -457,10 +519,24 @@
     restartBtn.style.display = 'none';
     comboEl.textContent = '';
 
-    player.avatar = ERA_DEFS[0].avatar;
+    player.avatar = ERA_DEFS[startIdx].avatar;
     updateBtnStates();
 
-    startEra(0, 0);
+    startEra(startIdx, 0);
+  }
+
+  function reset(){
+    resetCore(0);
+  }
+
+  // jumpToLevel(idx) — testing helper: closes the level-select overlay and
+  // restarts the run beginning at era `idx`, at the same starting speed as
+  // level 1. Cycle is always reset to 0 so duration/difficulty matches a
+  // normal level-1 start regardless of which level was picked.
+  function jumpToLevel(idx){
+    if(idx < 0 || idx >= ERA_DEFS.length) return;
+    closeLevelsOverlay();
+    resetCore(idx);
   }
 
   function startEra(idx, cycle){
@@ -557,6 +633,10 @@
     btns[a].addEventListener('pointerdown', (e)=>{ e.preventDefault(); swapTo(a); });
   });
   window.addEventListener('keydown', (e)=>{
+    if(levelsOverlay.style.display === 'flex'){
+      if(e.key === 'Escape') closeLevelsOverlay();
+      return;
+    }
     if(e.key === '1') swapTo('matsya');
     if(e.key === '2') swapTo('kurma');
     if(e.key === '3') swapTo('varaha');
@@ -570,9 +650,62 @@
     if(state === 'transition') endTransition();
   });
 
+  // --- Level-select overlay ---
+  // renderLevelGrid() builds one button per ERA_DEFS entry, using each
+  // era's avatar icon + localized avatar name as the label. Rebuilt on
+  // every open (and on language toggle) so labels stay in sync with
+  // currentLang without needing a separate re-render path.
+  function renderLevelGrid(){
+    levelGrid.innerHTML = '';
+    ERA_DEFS.forEach((era, idx)=>{
+      const meta = AVATAR_META[era.avatar];
+      const btn = document.createElement('div');
+      btn.className = 'levelBtn';
+      btn.dataset.levelIndex = String(idx);
+      const iconSpan = document.createElement('span');
+      iconSpan.className = 'lvlIcon';
+      iconSpan.textContent = meta.icon;
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'lvlName';
+      nameSpan.textContent = (idx+1) + '. ' + (currentLang === 'hi' ? meta.labelHi : meta.label);
+      btn.appendChild(iconSpan);
+      btn.appendChild(nameSpan);
+      btn.addEventListener('pointerdown', (e)=>{
+        e.stopPropagation();
+        jumpToLevel(idx);
+      });
+      levelGrid.appendChild(btn);
+    });
+  }
+
+  function openLevelsOverlay(){
+    renderLevelGrid();
+    levelsTitle.textContent = t().levelsTitle;
+    levelsOverlay.style.display = 'flex';
+  }
+
+  function closeLevelsOverlay(){
+    levelsOverlay.style.display = 'none';
+  }
+
+  levelsToggle.addEventListener('pointerdown', (e)=>{
+    e.stopPropagation();
+    if(levelsOverlay.style.display === 'flex') closeLevelsOverlay();
+    else openLevelsOverlay();
+  });
+  // Tap-outside-to-dismiss: the overlay itself covers the full canvas area,
+  // levelsCard is the inner panel. A pointerdown that lands on the overlay
+  // background (not bubbled from the card or its buttons, which call
+  // stopPropagation) closes the panel.
+  levelsOverlay.addEventListener('pointerdown', (e)=>{
+    if(e.target === levelsOverlay) closeLevelsOverlay();
+  });
+  levelsCard.addEventListener('pointerdown', (e)=>{ e.stopPropagation(); });
+
   function applyLanguage(){
     document.documentElement.lang = currentLang === 'hi' ? 'hi' : 'en';
     langToggle.textContent = t().toggleLabel;
+    levelsToggle.textContent = t().levelsToggle;
     msgEl.querySelector('h1').textContent = t().gameTitle;
     const msgPs = msgEl.querySelectorAll('p:not(.hint)');
     if(msgPs[0]) msgPs[0].innerHTML = t().introP1 + '<br>' + t().introP2;
@@ -593,6 +726,10 @@
     // Re-render whatever dynamic screen is currently showing
     if(state === 'transition') renderTransitionText();
     if(state === 'gameover' && lastEndReasonAvatar) renderGameOverText();
+    if(levelsOverlay.style.display === 'flex'){
+      levelsTitle.textContent = t().levelsTitle;
+      renderLevelGrid();
+    }
   }
 
   langToggle.addEventListener('pointerdown', (e)=>{
