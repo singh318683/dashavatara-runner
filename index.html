@@ -697,11 +697,20 @@
   // window, since an obstacle requiring a retired avatar would be uncleaable.
   function updateActiveWindow(){
     totalErasStarted++;
-    const windowSize = Math.min(ACTIVE_WINDOW, totalErasStarted);
-    activeAvatars = [];
-    for(let k = windowSize - 1; k >= 0; k--){
-      const idx = (eraIndex - k + AVATARS.length * 4) % AVATARS.length;
-      activeAvatars.push(AVATARS[idx]);
+    // Levels 1-2 (first cycle, before the window has ever reached full size):
+    // show the whole starter trio together instead of growing 1 -> 2 -> 3
+    // avatar-by-avatar. Keeps early levels varied rather than single-obstacle.
+    // From level 3 onward the same formula naturally gives the same result,
+    // so there's no seam — sliding (retiring the oldest) only shows up once
+    // level 4 (Narasimha) needs to bump someone out of a full window.
+    if(eraCycle === 0 && eraIndex < ACTIVE_WINDOW - 1){
+      activeAvatars = AVATARS.slice(0, ACTIVE_WINDOW);
+    } else {
+      activeAvatars = [];
+      for(let k = ACTIVE_WINDOW - 1; k >= 0; k--){
+        const idx = (eraIndex - k + AVATARS.length * 4) % AVATARS.length;
+        activeAvatars.push(AVATARS[idx]);
+      }
     }
     slotAvatars = [null, null, null];
     for(let i = 0; i < activeAvatars.length; i++) slotAvatars[i] = activeAvatars[i];
