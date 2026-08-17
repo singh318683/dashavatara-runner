@@ -59,6 +59,13 @@
     letter-spacing:.5px; cursor:pointer;
   }
   #muteToggle:active { transform: scale(.94); }
+  #codexToggle {
+    position:absolute; top:8px; right:176px; z-index:20;
+    padding:5px 10px; border-radius:14px; border:1.5px solid #f7d774;
+    background:rgba(10,15,30,.7); color:#f7d774; font-size:13px; font-weight:700;
+    letter-spacing:.5px; cursor:pointer;
+  }
+  #codexToggle:active { transform: scale(.94); }
   #eraBox { margin-top:24px; }
   #storyCaption {
     position:absolute; top:54%; left:50%; transform:translate(-50%, -50%);
@@ -135,6 +142,63 @@
   .levelBtn .lvlIcon { font-size:20px; }
   .levelBtn .lvlName { font-size:10px; font-weight:600; text-align:center; }
 
+  #codexOverlay {
+    position:absolute; inset:0; z-index:16; display:none;
+    align-items:center; justify-content:center;
+    background: rgba(6,10,22,.86); border-radius:8px; padding: 0 24px;
+  }
+  #codexCard {
+    background: rgba(16,24,44,.97); border:1.5px solid #f7d774;
+    border-radius:14px; padding:18px 20px; max-width:460px; width:100%;
+    max-height:88%; overflow-y:auto;
+    box-shadow: 0 10px 40px rgba(0,0,0,.6);
+  }
+  #codexCard h3 {
+    color:#f7d774; font-size:16px; margin-bottom:12px; text-align:center;
+    letter-spacing:.5px;
+  }
+  #codexGrid {
+    display:grid; grid-template-columns: repeat(3, 1fr); gap:10px;
+  }
+  .codexBtn {
+    display:flex; flex-direction:column; align-items:center; gap:4px;
+    padding:8px 6px; border-radius:10px; border:2px solid #3a4f66;
+    background: linear-gradient(180deg,#16233d,#0e1728);
+    color:#e8dcc0; cursor:pointer; user-select:none;
+    transition: border-color .15s, transform .08s;
+  }
+  .codexBtn:active { transform: scale(.95); }
+  .codexBtn img { height:34px; width:auto; display:block; }
+  .codexBtn .cdxName { font-size:10px; font-weight:600; text-align:center; }
+
+  #codexDetail { display:none; }
+  #codexBackBtn {
+    padding:5px 12px; border-radius:14px; border:1.5px solid #f7d774;
+    background:transparent; color:#f7d774; font-size:12px; font-weight:700;
+    cursor:pointer; margin-bottom:10px;
+  }
+  #codexDetail .cdxHeader {
+    display:flex; align-items:center; gap:12px; margin-bottom:12px;
+  }
+  #codexDetail .cdxHeader img { height:56px; width:auto; flex-shrink:0; }
+  #codexDetail .cdxTitles .cdxAvatarName {
+    font-size:17px; font-weight:700; color:#f7d774;
+  }
+  #codexDetail .cdxTitles .cdxEraName {
+    font-size:12px; color:#9fb4c9; margin-top:2px;
+  }
+  #codexDetail .cdxLabel {
+    font-size:11px; letter-spacing:1px; text-transform:uppercase;
+    color:#f7d774; opacity:.85; margin-top:12px;
+  }
+  #codexDetail .cdxLabel:first-of-type { margin-top:0; }
+  #codexDetail p {
+    font-size:13px; color:#dce8e6; line-height:1.5; margin-top:4px;
+  }
+  #codexDetail .cdxMechanic {
+    font-style:italic; color:#f7d774;
+  }
+
   #controls {
     display:flex; gap:10px; width:100%; max-width:900px; margin-top:14px;
   }
@@ -186,6 +250,7 @@
     #langToggle { top:6px; right:6px; padding:4px 10px; font-size:10px; }
     #levelsToggle { top:6px; right:56px; padding:4px 10px; font-size:10px; }
     #muteToggle { top:6px; right:104px; padding:4px 8px; font-size:11px; }
+    #codexToggle { top:6px; right:152px; padding:4px 8px; font-size:11px; }
     #eraBox { margin-top:20px; }
 
     /* The transition card (icon, labels, two paragraphs, banner, button)
@@ -217,6 +282,7 @@
   <button id="langToggle">हिं</button>
   <button id="levelsToggle">Levels</button>
   <button id="muteToggle">🔊</button>
+  <button id="codexToggle">📖</button>
   <div id="storyCaption"></div>
 
   <div id="hud">
@@ -259,6 +325,31 @@
     <div id="levelsCard">
       <h3 id="levelsTitle">Jump to Level</h3>
       <div id="levelGrid"></div>
+    </div>
+  </div>
+
+  <div id="codexOverlay">
+    <div id="codexCard">
+      <div id="codexGridView">
+        <h3 id="codexTitle">Codex</h3>
+        <div id="codexGrid"></div>
+      </div>
+      <div id="codexDetail">
+        <button id="codexBackBtn">&larr; <span id="codexBackLabel">Back</span></button>
+        <div class="cdxHeader">
+          <img id="cdxIcon" src="" alt="">
+          <div class="cdxTitles">
+            <div class="cdxAvatarName" id="cdxAvatarName"></div>
+            <div class="cdxEraName" id="cdxEraName"></div>
+          </div>
+        </div>
+        <div class="cdxLabel" id="cdxStoryLabel">The story</div>
+        <p id="cdxDeed"></p>
+        <div class="cdxLabel" id="cdxMechanicLabel">Why this mechanic</div>
+        <p class="cdxMechanic" id="cdxMechanic"></p>
+        <div class="cdxLabel" id="cdxFunFactLabel">Fun fact</div>
+        <p id="cdxFunFact"></p>
+      </div>
     </div>
   </div>
 </div>
@@ -480,6 +571,27 @@
   const levelGrid = document.getElementById('levelGrid');
   const levelsTitle = document.getElementById('levelsTitle');
 
+  const codexToggle = document.getElementById('codexToggle');
+  const codexOverlay = document.getElementById('codexOverlay');
+  const codexCard = document.getElementById('codexCard');
+  const codexGridView = document.getElementById('codexGridView');
+  const codexGrid = document.getElementById('codexGrid');
+  const codexTitleEl = document.getElementById('codexTitle');
+  const codexDetail = document.getElementById('codexDetail');
+  const codexBackBtn = document.getElementById('codexBackBtn');
+  const codexBackLabel = document.getElementById('codexBackLabel');
+  const cdxIcon = document.getElementById('cdxIcon');
+  const cdxAvatarName = document.getElementById('cdxAvatarName');
+  const cdxEraName = document.getElementById('cdxEraName');
+  const cdxStoryLabel = document.getElementById('cdxStoryLabel');
+  const cdxDeed = document.getElementById('cdxDeed');
+  const cdxMechanicLabel = document.getElementById('cdxMechanicLabel');
+  const cdxMechanic = document.getElementById('cdxMechanic');
+  const cdxFunFactLabel = document.getElementById('cdxFunFactLabel');
+  const cdxFunFact = document.getElementById('cdxFunFact');
+  let codexOpen = false; // pauses gameplay update() while the codex is open, regardless of `state`
+  let codexDetailIdx = null; // which entry the detail view is currently showing, for language re-render
+
   // Sliding-window button slots: 3 fixed DOM slots whose avatar assignment
   // changes as the run progresses (see updateActiveWindow/renderAvatarButtons
   // below), rather than one button per avatar ever unlocked.
@@ -618,7 +730,12 @@
       chakraSaved:'Chakra saved you!',
       toggleLabel:'हिं',
       levelsToggle:'Levels',
-      levelsTitle:'Jump to Level'
+      levelsTitle:'Jump to Level',
+      codexTitle:'Codex',
+      codexBack:'Back',
+      codexStory:'The story',
+      codexMechanic:'Why this mechanic',
+      codexFunFact:'Fun fact'
     },
     hi: {
       gameTitle:'दशावतार रनर',
@@ -644,7 +761,12 @@
       chakraSaved:'चक्र ने बचाया!',
       toggleLabel:'EN',
       levelsToggle:'लेवल',
-      levelsTitle:'लेवल चुनें'
+      levelsTitle:'लेवल चुनें',
+      codexTitle:'कोश',
+      codexBack:'वापस',
+      codexStory:'कथा',
+      codexMechanic:'यह क्षमता क्यों',
+      codexFunFact:'रोचक तथ्य'
     }
   };
   function t(){ return I18N[currentLang]; }
@@ -752,6 +874,32 @@
         { at:0.68, en:'One final blow will restore dharma.', hi:'एक अंतिम प्रहार धर्म को पुनर्स्थापित करेगा।' }
       ] }
   ];
+
+  // Codex "why this mechanic" lines — a short bridge sentence per avatar
+  // connecting their myth (already told in full via ERA_DEFS deed/funFact)
+  // to the specific obstacle mechanic they clear in the game.
+  const CODEX_MECHANIC = {
+    matsya: { en:'That\u2019s why, in this form, you dive through the rising water gaps \u2014 echoing the flood he once guided Manu\u2019s boat through.',
+      hi:'इसीलिए, इस रूप में, आप बढ़ते जल के गड्ढों में गोता लगाते हैं — जैसे उन्होंने मनु की नाव को प्रलय में मार्ग दिखाया था।' },
+    kurma: { en:'That\u2019s why, in this form, your shell holds firm against falling debris \u2014 just as his back once bore the weight of Mount Mandara.',
+      hi:'इसीलिए, इस रूप में, आपका कवच गिरते मलबे के सामने अडिग रहता है — जैसे उनकी पीठ ने मंदराचल पर्वत का भार सहा था।' },
+    varaha: { en:'That\u2019s why, in this form, you dig beneath tangled root-walls \u2014 echoing how he dove beneath the cosmic ocean to lift the earth free.',
+      hi:'इसीलिए, इस रूप में, आप उलझी हुई जड़ों की दीवारों के नीचे खोदते हैं — जैसे उन्होंने पृथ्वी को मुक्त करने के लिए ब्रह्मांडीय सागर में गोता लगाया था।' },
+    narasimha: { en:'That\u2019s why, in this form, you burst straight through stone pillars \u2014 echoing how he tore free from one to end Hiranyakashipu\u2019s reign.',
+      hi:'इसीलिए, इस रूप में, आप पत्थर के स्तंभों को तोड़कर निकलते हैं — जैसे उन्होंने हिरण्यकशिपु के शासन का अंत करने के लिए एक स्तंभ से प्रकट होकर उसे फाड़ डाला था।' },
+    vamana: { en:'That\u2019s why, in this form, you leap the widening steps \u2014 echoing the three cosmic strides that once spanned the earth and sky.',
+      hi:'इसीलिए, इस रूप में, आप बढ़ते हुए पगों पर छलांग लगाते हैं — जैसे उनके तीन दिव्य डगों ने पृथ्वी और आकाश को नाप लिया था।' },
+    parashurama: { en:'That\u2019s why, in this form, you cleave through royal barriers \u2014 echoing the axe he carried through twenty-one campaigns against tyranny.',
+      hi:'इसीलिए, इस रूप में, आप राजसी बाधाओं को फरसे से काटते हैं — जैसे उन्होंने इक्कीस बार अत्याचार के विरुद्ध यह फरसा उठाया था।' },
+    rama: { en:'That\u2019s why, in this form, you cross the shifting bridge stones \u2014 echoing the floating bridge his vanara army built across the sea to Lanka.',
+      hi:'इसीलिए, इस रूप में, आप डगमगाते सेतु के पत्थरों को पार करते हैं — जैसे उनकी वानर सेना ने लंका तक तैरता सेतु बनाया था।' },
+    krishna: { en:'That\u2019s why, in this form, you hold steady against the storm \u2014 echoing how he raised Govardhan Hill on a fingertip to shelter his people.',
+      hi:'इसीलिए, इस रूप में, आप तूफान के सामने अडिग खड़े रहते हैं — जैसे उन्होंने अपने भक्तों की रक्षा के लिए गोवर्धन पर्वत को उँगली पर उठाया था।' },
+    buddha: { en:'That\u2019s why, in this form, you meditate through Mara\u2019s illusions \u2014 echoing the stillness he found beneath the Bodhi tree against fear and temptation.',
+      hi:'इसीलिए, इस रूप में, आप मार की माया के बीच ध्यान करते हैं — जैसे उन्होंने बोधि वृक्ष के नीचे भय और प्रलोभन के विरुद्ध शांति पाई थी।' },
+    kalki: { en:'That\u2019s why, in this form, you strike down the encroaching darkness \u2014 echoing the blazing sword that will end the Kali Yuga and begin a new age.',
+      hi:'इसीलिए, इस रूप में, आप बढ़ते अंधकार का नाश करते हैं — जैसे उनकी प्रज्ज्वलित तलवार कलियुग का अंत कर नए युग का आरंभ करेगी।' }
+  };
 
   const ERA_BASE_DURATION = 26000; // ms, first cycle
   const ERA_DURATION_STEP = 4000;  // added per full cycle through all eras
@@ -1208,6 +1356,10 @@
     });
   });
   window.addEventListener('keydown', (e)=>{
+    if(codexOverlay.style.display === 'flex'){
+      if(e.key === 'Escape') closeCodexOverlay();
+      return;
+    }
     if(levelsOverlay.style.display === 'flex'){
       if(e.key === 'Escape') closeLevelsOverlay();
       return;
@@ -1255,6 +1407,7 @@
   }
 
   function openLevelsOverlay(){
+    closeCodexOverlay();
     renderLevelGrid();
     levelsTitle.textContent = t().levelsTitle;
     levelsOverlay.style.display = 'flex';
@@ -1277,6 +1430,102 @@
     if(e.target === levelsOverlay) closeLevelsOverlay();
   });
   levelsCard.addEventListener('pointerdown', (e)=>{ e.stopPropagation(); });
+
+  // --- Codex: browse every avatar's mythology and how it ties to their
+  // obstacle mechanic, independent of what's unlocked in the current run.
+  function renderCodexGrid(){
+    codexGrid.innerHTML = '';
+    ERA_DEFS.forEach((era, idx)=>{
+      const meta = AVATAR_META[era.avatar];
+      const btn = document.createElement('div');
+      btn.className = 'codexBtn';
+      if(SPRITE_URIS[era.avatar]){
+        const img = document.createElement('img');
+        img.src = SPRITE_URIS[era.avatar];
+        img.alt = meta.label;
+        btn.appendChild(img);
+      } else {
+        const iconSpan = document.createElement('span');
+        iconSpan.style.fontSize = '28px';
+        iconSpan.textContent = meta.icon;
+        btn.appendChild(iconSpan);
+      }
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'cdxName';
+      nameSpan.textContent = currentLang === 'hi' ? meta.labelHi : meta.label;
+      btn.appendChild(nameSpan);
+      btn.addEventListener('pointerdown', (e)=>{
+        e.stopPropagation();
+        openCodexDetail(idx);
+      });
+      codexGrid.appendChild(btn);
+    });
+  }
+
+  function renderCodexDetail(){
+    if(codexDetailIdx === null) return;
+    const era = ERA_DEFS[codexDetailIdx];
+    const meta = AVATAR_META[era.avatar];
+    const avName = currentLang === 'hi' ? meta.labelHi : meta.label;
+    if(SPRITE_URIS[era.avatar]){
+      cdxIcon.style.display = '';
+      cdxIcon.src = SPRITE_URIS[era.avatar];
+    } else {
+      cdxIcon.style.display = 'none';
+    }
+    cdxAvatarName.textContent = avName;
+    cdxEraName.textContent = currentLang === 'hi' ? era.eraNameHi : era.eraName;
+    cdxStoryLabel.textContent = t().codexStory;
+    cdxDeed.textContent = currentLang === 'hi' ? era.deedHi : era.deed;
+    cdxMechanicLabel.textContent = t().codexMechanic;
+    const mech = CODEX_MECHANIC[era.avatar];
+    cdxMechanic.textContent = mech ? (currentLang === 'hi' ? mech.hi : mech.en) : '';
+    cdxFunFactLabel.textContent = t().codexFunFact;
+    cdxFunFact.textContent = currentLang === 'hi' ? era.funFactHi : era.funFact;
+    codexBackLabel.textContent = t().codexBack;
+  }
+
+  function openCodexDetail(idx){
+    codexDetailIdx = idx;
+    renderCodexDetail();
+    codexGridView.style.display = 'none';
+    codexDetail.style.display = 'block';
+  }
+
+  function backToCodexGrid(){
+    codexDetailIdx = null;
+    codexDetail.style.display = 'none';
+    codexGridView.style.display = '';
+  }
+
+  function openCodexOverlay(){
+    closeLevelsOverlay();
+    codexOpen = true;
+    backToCodexGrid();
+    renderCodexGrid();
+    codexTitleEl.textContent = t().codexTitle;
+    codexOverlay.style.display = 'flex';
+  }
+
+  function closeCodexOverlay(){
+    codexOpen = false;
+    codexOverlay.style.display = 'none';
+  }
+
+  codexToggle.addEventListener('pointerdown', (e)=>{
+    e.stopPropagation();
+    if(codexOverlay.style.display === 'flex') closeCodexOverlay();
+    else openCodexOverlay();
+  });
+  codexBackBtn.addEventListener('pointerdown', (e)=>{
+    e.stopPropagation();
+    backToCodexGrid();
+  });
+  // Tap-outside-to-dismiss, same pattern as the level-select overlay.
+  codexOverlay.addEventListener('pointerdown', (e)=>{
+    if(e.target === codexOverlay) closeCodexOverlay();
+  });
+  codexCard.addEventListener('pointerdown', (e)=>{ e.stopPropagation(); });
 
   function applyLanguage(){
     document.documentElement.lang = currentLang === 'hi' ? 'hi' : 'en';
@@ -1301,6 +1550,14 @@
     if(levelsOverlay.style.display === 'flex'){
       levelsTitle.textContent = t().levelsTitle;
       renderLevelGrid();
+    }
+    if(codexOverlay.style.display === 'flex'){
+      codexTitleEl.textContent = t().codexTitle;
+      if(codexDetailIdx !== null){
+        renderCodexDetail();
+      } else {
+        renderCodexGrid();
+      }
     }
   }
 
@@ -1380,6 +1637,7 @@
   }
 
   function update(dt){
+    if(codexOpen) return; // reading the codex — freeze gameplay until closed
     if(state === 'transition'){
       return; // waiting on the Begin button — see beginBtn listener
     }
