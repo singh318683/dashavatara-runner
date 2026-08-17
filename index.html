@@ -424,6 +424,8 @@
       whatHappened:'What happened',
       funFact:'Fun fact',
       begin:'Begin',
+      continueLabel:'Continue',
+      levelComplete:'Level complete!',
       runEnded:'Run Ended',
       wrongForm:(name)=>`Wrong form — needed ${name}`,
       distance:(n)=>`Distance: ${n}m`,
@@ -445,6 +447,8 @@
       whatHappened:'क्या हुआ',
       funFact:'रोचक तथ्य',
       begin:'शुरू करें',
+      continueLabel:'जारी रखें',
+      levelComplete:'स्तर पूर्ण!',
       runEnded:'रन समाप्त',
       wrongForm:(name)=>`गलत रूप — ${name} चाहिए था`,
       distance:(n)=>`दूरी: ${n} मी`,
@@ -571,12 +575,13 @@
   const SIGNATURE_WINDOW = 7000;   // last N ms of era reserved for signature obstacle
   const WARMUP_WINDOW = 5000;      // first N ms of era, gentler spawn
 
-  let state; // 'transition' | 'playing' | 'gameover'
+  let state; // 'transition' | 'levelComplete' | 'playing' | 'gameover'
   let player, obstacles, speed, distance, lastSpawn, cooldownUntil, comboCount, animT;
   let eraIndex, eraCycle, eraElapsed, eraDuration, signatureSpawned, unlockedTypes;
   let runElapsed; // total real playtime this run (excludes transition pauses) — drives the speed-ramp tier
   let lastCompletedAvatar = null; // avatar just finished, for the completion banner
   let lastPraiseIdx = 0;
+  let pendingNextEra = null; // { idx, cycle } queued while the "level complete" declaration is showing
   const PRAISE_EN = ['Great job!', 'Well played!', 'Nicely done!', 'Impressive run!', 'You crushed that!'];
   const PRAISE_HI = ['शानदार!', 'बहुत बढ़िया!', 'वाह, कमाल किया!', 'अच्छा खेला!', 'जबरदस्त!'];
   let firedBeats = new Set(); // indices of story beats already fired this era
@@ -795,19 +800,67 @@
     tDeed.textContent = currentLang === 'hi' ? era.deedHi : era.deed;
     tFunFact.textContent = currentLang === 'hi' ? era.funFactHi : era.funFact;
 
+    // this card is now always the "next era" intro — the completion
+    // declaration has its own screen (see renderLevelCompleteText), so
+    // the "what happened"/"fun fact" sections and their labels are always
+    // shown here, in case a prior declare screen hid them
+    document.querySelectorAll('#transitionOverlay .tLabel').forEach(el => el.style.display = '');
+    tDeed.style.display = '';
+    tFunFact.style.display = '';
+    beginBtn.textContent = t().begin;
+
+    document.getElementById('completeBanner').style.display = 'none';
+  }
+
+  // showLevelComplete — a dedicated pause screen announcing that the avatar
+  // just played is done, shown before the next era's own intro card, so
+  // finishing a level always feels like a distinct beat rather than an
+  // instant, unannounced jump into the next level's story.
+  function showLevelComplete(){
+    state = 'levelComplete';
+    transitionOverlay.style.display = 'flex';
+    hudEl.style.visibility = 'hidden';
+    renderLevelCompleteText();
+  }
+
+  function renderLevelCompleteText(){
+    const doneMeta = AVATAR_META[lastCompletedAvatar];
+    const doneName = currentLang === 'hi' ? doneMeta.labelHi : doneMeta.label;
+    const praise = currentLang === 'hi' ? PRAISE_HI[lastPraiseIdx] : PRAISE_EN[lastPraiseIdx];
+
+    if(SPRITE_URIS[lastCompletedAvatar]){
+      tIcon.style.display = '';
+      tIcon.src = SPRITE_URIS[lastCompletedAvatar];
+    } else {
+      tIcon.style.display = 'none';
+    }
+    tAvatarName.textContent = doneName;
+    tEraName.textContent = t().levelComplete;
+
+    // this screen is only the declaration — hide the next era's story
+    // content until the player taps through to it
+    document.querySelectorAll('#transitionOverlay .tLabel').forEach(el => el.style.display = 'none');
+    tDeed.style.display = 'none';
+    tFunFact.style.display = 'none';
+
     const completeBanner = document.getElementById('completeBanner');
     const completeText = document.getElementById('completeText');
-    if(lastCompletedAvatar){
-      const doneMeta = AVATAR_META[lastCompletedAvatar];
-      const doneName = currentLang === 'hi' ? doneMeta.labelHi : doneMeta.label;
-      const praise = currentLang === 'hi' ? PRAISE_HI[lastPraiseIdx] : PRAISE_EN[lastPraiseIdx];
-      completeText.textContent = currentLang === 'hi'
-        ? `${doneName} पूरा हुआ! ${praise}`
-        : `${doneName} complete! ${praise}`;
-      completeBanner.style.display = 'inline-flex';
-    } else {
-      completeBanner.style.display = 'none';
-    }
+    completeText.textContent = (currentLang === 'hi'
+      ? `${doneName} पूरा हुआ! ${praise}`
+      : `${doneName} complete! ${praise}`) + ' \u2014 ' + t().distance(Math.floor(distance));
+    completeBanner.style.display = 'inline-flex';
+
+    beginBtn.textContent = t().continueLabel;
+  }
+
+  // proceedToNextEraIntro — called when the player taps Continue on the
+  // level-complete declaration; swaps the same overlay card over to the
+  // next era's full intro (deed/fun fact/Begin button).
+  function proceedToNextEraIntro(){
+    const next = pendingNextEra;
+    pendingNextEra = null;
+    lastCompletedAvatar = null; // the declaration already showed it; don't repeat the banner
+    startEra(next.idx, next.cycle);
   }
 
   function endTransition(){
@@ -827,7 +880,8 @@
     }
     lastCompletedAvatar = completedAvatar;
     lastPraiseIdx = Math.floor(Math.random() * PRAISE_EN.length);
-    startEra(nextIdx, nextCycle);
+    pendingNextEra = { idx: nextIdx, cycle: nextCycle };
+    showLevelComplete();
   }
 
   function swapTo(avatar){
@@ -871,7 +925,8 @@
   const beginBtn = document.getElementById('beginBtn');
   beginBtn.addEventListener('pointerdown', (e)=>{
     e.stopPropagation();
-    if(state === 'transition') endTransition();
+    if(state === 'levelComplete') proceedToNextEraIntro();
+    else if(state === 'transition') endTransition();
   });
 
   // --- Level-select overlay ---
@@ -943,6 +998,7 @@
     renderAvatarButtons();
     // Re-render whatever dynamic screen is currently showing
     if(state === 'transition') renderTransitionText();
+    if(state === 'levelComplete') renderLevelCompleteText();
     if(state === 'gameover' && lastEndReasonAvatar) renderGameOverText();
     if(levelsOverlay.style.display === 'flex'){
       levelsTitle.textContent = t().levelsTitle;
@@ -1622,7 +1678,7 @@
     if(state === 'playing'){
       drawObstacles();
       drawPlayer();
-    } else if(state === 'transition'){
+    } else if(state === 'transition' || state === 'levelComplete'){
       drawPlayer();
     } else if(state === 'gameover'){
       drawPlayer();
