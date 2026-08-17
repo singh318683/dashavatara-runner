@@ -489,6 +489,9 @@
   const SPRITE_SCALE = 1; // avatar render size, shared by the player sprite AND
                            // the obstacle "which avatar do I need" figures, so
                            // they always stay the same size as each other
+  const PLAYER_SCALE_MULT = 1.5; // player is deliberately bigger than obstacles,
+                                  // on top of the shared SPRITE_SCALE above
+  const PLAYER_SCALE = SPRITE_SCALE * PLAYER_SCALE_MULT;
   const AVATARS = ['matsya','kurma','varaha','narasimha','vamana','parashurama','rama','krishna','buddha','kalki'];
   const ACTIVE_WINDOW = 3; // max avatars selectable at once; oldest retires as a new one unlocks
   const AVATAR_META = {
@@ -1869,14 +1872,15 @@
     const cx = player.x + player.w/2, cy = player.y + player.h/2 + bob + 6;
     const img = SPRITE_IMAGES[player.avatar];
 
-    // Avatar render size is 2x the base scale (SPRITE_SCALE, shared with the
-    // obstacle avatar figures below), independent of the 34x34 collision
+    // Player render size uses PLAYER_SCALE (bigger than the obstacle icons'
+    // SPRITE_SCALE, on purpose — the hero should read as visually larger
+    // than the world's obstacles). Independent of the 34x34 collision
     // hitbox above — purely visual, doesn't touch difficulty. The character
     // grows upward from its feet (shadow stays put at the original
     // ground-contact point) rather than scaling from its center, so it
     // doesn't look like it's sinking into the ground.
     const oldHalfH = 23; // half of the old 46px sprite height / old placeholder radius
-    const footShift = oldHalfH * (SPRITE_SCALE - 1);
+    const footShift = oldHalfH * (PLAYER_SCALE - 1);
     const dcx = cx, dcy = cy - footShift;
 
     // ground shadow beneath the sprite, for the same grounded feel the
@@ -1889,7 +1893,7 @@
     ctx.fill();
 
     if(img && img.complete && img.naturalWidth > 0){
-      const targetH = 46 * SPRITE_SCALE;
+      const targetH = 46 * PLAYER_SCALE;
       const targetW = targetH * (img.naturalWidth / img.naturalHeight);
       ctx.shadowColor = meta.color;
       ctx.shadowBlur = 14;
@@ -1899,7 +1903,7 @@
       // sprite not loaded yet — fall back to the vector illustration
       ctx.shadowColor = meta.color;
       ctx.shadowBlur = 14;
-      AVATAR_DRAW[player.avatar](dcx, dcy, 1.15 * SPRITE_SCALE);
+      AVATAR_DRAW[player.avatar](dcx, dcy, 1.15 * PLAYER_SCALE);
       ctx.shadowBlur = 0;
     } else {
       // no sprite and no vector art yet (e.g. narasimha) — colored disc + icon
@@ -1907,10 +1911,10 @@
       ctx.shadowBlur = 14;
       ctx.fillStyle = meta.color;
       ctx.beginPath();
-      ctx.arc(dcx, dcy, 23 * SPRITE_SCALE, 0, Math.PI*2);
+      ctx.arc(dcx, dcy, 23 * PLAYER_SCALE, 0, Math.PI*2);
       ctx.fill();
       ctx.shadowBlur = 0;
-      ctx.font = (28 * SPRITE_SCALE) + 'px sans-serif';
+      ctx.font = (28 * PLAYER_SCALE) + 'px sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(meta.icon, dcx, dcy + 1);
@@ -1920,7 +1924,7 @@
     if(now < cooldownUntil){
       ctx.strokeStyle = 'rgba(255,255,255,.3)';
       ctx.beginPath();
-      ctx.arc(dcx, dcy, 26 * SPRITE_SCALE, 0, Math.PI*2);
+      ctx.arc(dcx, dcy, 26 * PLAYER_SCALE, 0, Math.PI*2);
       ctx.stroke();
     }
   }
