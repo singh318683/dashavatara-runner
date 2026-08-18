@@ -751,6 +751,7 @@
       chakraCharges:(n)=>`Chakra x${n}`,
       chakraPickup:'Chakra! 2 free clears',
       chakraSaved:'Chakra saved you!',
+      stillnessBonus:'Stillness rewarded \u2014 +1 Chakra',
       toggleLabel:'हिं',
       levelsToggle:'Levels',
       levelsTitle:'Jump to Level',
@@ -782,6 +783,7 @@
       chakraCharges:(n)=>`चक्र x${n}`,
       chakraPickup:'चक्र! 2 मुफ़्त पार',
       chakraSaved:'चक्र ने बचाया!',
+      stillnessBonus:'स्थिरता का फल — +1 चक्र',
       toggleLabel:'EN',
       levelsToggle:'लेवल',
       levelsTitle:'लेवल चुनें',
@@ -993,6 +995,18 @@
   let chakraCharges = 0;
   let lastPowerupSpawn = 0; // ms since last chakra spawn attempt, for pacing
   let nextPowerupGap = 11000 + Math.random() * 6000; // randomized interval until the next eligible spawn
+
+  // --- Per-level twist state ---------------------------------------------
+  // Each avatar's era has one small, isolated mechanic hook layered on top
+  // of the shared game loop, tied to that avatar's own myth. Every hook is
+  // gated behind `currentEra().avatar === '<name>'`, so none of them can
+  // affect any other level.
+  let tremorWarned = false;      // Kurma: has the pre-signature shake fired this era?
+  let pendingTwinSpawn = 0;      // Varaha: ms until a queued twin root-wall spawns, or 0 if none queued
+  let timeSinceLastSwap = 0;     // Buddha: ms since the player last swapped avatar, for the stillness bonus
+  let stillnessBonusFlash = 0;   // Buddha: timestamp of the last stillness-bonus grant, for the HUD flash text
+  let nextGustAt = 3000;         // Krishna: eraElapsed (ms) at which the next storm gust triggers
+  let gustEndsAt = 0;             // Krishna: eraElapsed (ms) at which the current gust ends
   const CHAKRA_CHARGE_GRANT = 2;
   const CHAKRA_CHARGE_CAP = 4;
   const chakraIndicatorEl = document.getElementById('chakraIndicator');
@@ -1175,6 +1189,16 @@
     nextPowerupGap = 11000 + Math.random() * 6000;
     updateChakraIndicator();
 
+    // Per-level twist state (see applyLevelTwists comments below) — all
+    // reset here on a fresh run/level jump, and again per-era in startEra
+    // where they need to restart each level rather than persist across one.
+    tremorWarned = false;
+    pendingTwinSpawn = 0;
+    timeSinceLastSwap = 0;
+    stillnessBonusFlash = 0;
+    nextGustAt = 3000 + Math.random() * 2000;
+    gustEndsAt = 0;
+
     msgEl.style.display = 'none';
     restartBtn.style.display = 'none';
     comboEl.textContent = '';
@@ -1279,6 +1303,11 @@
     obstacles.length = 0;
     powerups.length = 0;
     lastSpawn = 0;
+    tremorWarned = false;
+    pendingTwinSpawn = 0;
+    timeSinceLastSwap = 0;
+    nextGustAt = 3000 + Math.random() * 2000;
+    gustEndsAt = 0;
 
     canvas.style.background = BG_THEMES[currentEra().avatar];
     eraTimerFill.style.width = '100%';
@@ -1453,6 +1482,7 @@
     if(avatar === player.avatar) return;
     player.avatar = avatar;
     cooldownUntil = now + SWAP_COOLDOWN;
+    timeSinceLastSwap = 0; // Buddha's stillness bonus resets on any swap, everywhere else it's just unused
     updateBtnStates();
     playSwapSound();
   }
@@ -1694,11 +1724,27 @@
 
   function spawnObstacle(type, big){
     const meta = OBSTACLE_META[type];
-    const w = big ? 64 : 46;
+    let w = big ? 64 : 46;
+    let extraH = big ? 14 : 0;
+
+    // Matsya — Rising Tide: water gaps grow taller as the flood rises
+    // through the level, so the back half is tenser than the front.
+    if(currentEra().avatar === 'matsya' && type === 'watergap'){
+      const progress = eraDuration > 0 ? Math.min(1, eraElapsed / eraDuration) : 0;
+      extraH += progress * 16;
+    }
+    // Vamana — Growing Strides: each step obstacle is a little wider than
+    // the last, echoing how Trivikrama\u2019s own stride grew with each pace.
+    if(currentEra().avatar === 'vamana' && type === 'stepgap'){
+      const progress = eraDuration > 0 ? Math.min(1, eraElapsed / eraDuration) : 0;
+      w += progress * 22;
+    }
+
+    const h = meta.h + extraH;
     obstacles.push({
       type, x: W + 40, w,
-      h: meta.h + (big ? 14 : 0),
-      y: GROUND_Y + 34 - (meta.h + (big ? 14 : 0)),
+      h,
+      y: GROUND_Y + 34 - h,
       cleared:false, signature: !!big
     });
   }
@@ -1765,6 +1811,24 @@
     animT += dt;
     runElapsed += dt;
 
+    // Buddha — Stillness Bonus: staying in form (not swapping) for 6
+    // uninterrupted seconds grants a bonus Chakra charge, echoing how
+    // stillness itself was his path to enlightenment. Resets and can
+    // trigger repeatedly through the era, not just once.
+    if(currentEra().avatar === 'buddha'){
+      timeSinceLastSwap += dt;
+      if(timeSinceLastSwap >= 6000){
+        timeSinceLastSwap = 0;
+        if(chakraCharges < CHAKRA_CHARGE_CAP){
+          chakraCharges = Math.min(CHAKRA_CHARGE_CAP, chakraCharges + 1);
+          updateChakraIndicator();
+          comboEl.textContent = t().stillnessBonus;
+          stillnessBonusFlash = performance.now();
+          spawnSuccessBurst(player.x + player.w/2, player.y + player.h/2);
+        }
+      }
+    }
+
     // Speed never resets between eras (intentional — the whole run keeps
     // escalating), but that means a fresh era can start well above where
     // the last one began. Ease into the carried-over speed over the first
@@ -1785,6 +1849,15 @@
     const remain = Math.max(0, eraDuration - eraElapsed);
     eraTimerFill.style.width = Math.max(0, (remain/eraDuration)*100) + '%';
     eraSecondsEl.textContent = Math.ceil(remain/1000) + 's';
+
+    // Kurma — Tremor Warning: a brief shake-tell exactly 500ms before the
+    // signature debris moment becomes eligible to spawn — a fair, readable
+    // cue rather than a pure-reflex surprise, echoing Mount Mandara
+    // trembling on his shell.
+    if(currentEra().avatar === 'kurma' && !tremorWarned && remain <= SIGNATURE_WINDOW + 500 && remain > SIGNATURE_WINDOW){
+      tremorWarned = true;
+      shakeStart = performance.now();
+    }
 
     // Story beats: non-blocking narrative captions + a small particle
     // flourish, fired at fixed progress points through the era. Unlike the
@@ -1846,9 +1919,31 @@
     }
     spawnGap = Math.max(spawnGap, spawnFloor);
 
+    // Kalki — Final Surge: the last quarter of his era ramps the spawn
+    // cadence noticeably tighter than usual, for a real climactic push
+    // rather than business-as-usual pacing right up to the end.
+    if(currentEra().avatar === 'kalki' && remain <= eraDuration * 0.25){
+      spawnGap = Math.max(spawnFloor, spawnGap * 0.7);
+    }
+
     if(lastSpawn > spawnGap){
       lastSpawn = 0;
-      spawnObstacle(pickObstacleType(false), false);
+      const spawnedType = pickObstacleType(false);
+      spawnObstacle(spawnedType, false);
+
+      // Varaha — Twin Tusks: root-walls occasionally arrive in close pairs,
+      // testing sustained focus rather than one-off reactions.
+      if(currentEra().avatar === 'varaha' && spawnedType === 'rootwall' && Math.random() < 0.32){
+        pendingTwinSpawn = 380 + Math.random() * 120;
+      }
+    }
+
+    if(pendingTwinSpawn > 0){
+      pendingTwinSpawn -= dt;
+      if(pendingTwinSpawn <= 0){
+        pendingTwinSpawn = 0;
+        spawnObstacle('rootwall', false);
+      }
     }
 
     // Chakra power-up: spawns occasionally (roughly every 11-17s of active
@@ -1875,14 +1970,30 @@
       if(p.collected || p.x < -70) powerups.splice(i,1);
     }
 
+    // Krishna — Storm Gusts: periodic bursts where obstacles briefly rush
+    // in faster, echoing Indra's storm — affects only how fast obstacles
+    // travel, never the distance/score calculation above, so it's a pure
+    // reflex spike rather than a scoring quirk.
+    let obstacleSpeedMult = 1;
+    if(currentEra().avatar === 'krishna'){
+      if(eraElapsed >= nextGustAt && eraElapsed >= gustEndsAt){
+        gustEndsAt = eraElapsed + 900;
+        nextGustAt = eraElapsed + 900 + 4000 + Math.random() * 2000;
+      }
+      if(eraElapsed < gustEndsAt) obstacleSpeedMult = 1.45;
+    }
+
     for(let i = obstacles.length -1; i>=0; i--){
       const o = obstacles[i];
-      o.x -= effSpeed;
+      o.x -= effSpeed * obstacleSpeedMult;
       if(!o.cleared && o.x < player.x + player.w && o.x + o.w > player.x){
         const needed = OBSTACLE_CLEAR[o.type];
         if(player.avatar === needed){
           o.cleared = true;
-          comboCount++;
+          // Parashurama — Axe Echo: every clear counts double toward the
+          // combo here, echoing his twenty-one repeated campaigns —
+          // repetition itself is the theme of this level.
+          comboCount += currentEra().avatar === 'parashurama' ? 2 : 1;
           comboEl.textContent = o.signature ? t().signatureCleared : (comboCount > 1 ? t().combo(comboCount) : t().cleared);
           spawnSuccessBurst(o.x + o.w/2, o.y + o.h/2);
           playClearSound();
@@ -2311,12 +2422,17 @@
       const needImg = SPRITE_IMAGES[need];
       const cx = o.x + o.w/2;
 
+      // Rama — Shifting Stones: bridge-stone obstacles bob gently, like
+      // unstable floating rocks — purely cosmetic (collision below only
+      // ever checks o.x), so it never affects fairness.
+      const dy = o.type === 'bridgegap' ? o.y + Math.sin((animT + o.x) * 0.006) * 4 : o.y;
+
       ctx.fillStyle = o.cleared ? 'rgba(120,200,150,.35)' : meta.color;
-      ctx.fillRect(o.x, o.y, o.w, o.h);
+      ctx.fillRect(o.x, dy, o.w, o.h);
       if(o.signature){
         ctx.strokeStyle = '#f7d774';
         ctx.lineWidth = 3;
-        ctx.strokeRect(o.x-2, o.y-2, o.w+4, o.h+4);
+        ctx.strokeRect(o.x-2, dy-2, o.w+4, o.h+4);
       }
 
       // The obstacle is shaped like the avatar you need to become — draw
@@ -2333,17 +2449,17 @@
         const iconW = iconH * (needImg.naturalWidth / needImg.naturalHeight);
         labelOvershoot = Math.max(0, iconH - o.h);
         ctx.globalAlpha = o.cleared ? 0.35 : 1;
-        ctx.drawImage(needImg, cx - iconW/2, o.y + o.h - iconH, iconW, iconH);
+        ctx.drawImage(needImg, cx - iconW/2, dy + o.h - iconH, iconW, iconH);
         ctx.globalAlpha = 1;
       } else {
-        drawMiniIcon(need, cx, o.y + (o.h/2) + 4);
+        drawMiniIcon(need, cx, dy + (o.h/2) + 4);
       }
 
       ctx.fillStyle = '#fff';
       ctx.font = '10px sans-serif';
       ctx.textAlign = 'center';
       const obLabel = currentLang === 'hi' ? meta.labelHi : meta.label;
-      ctx.fillText(o.signature ? obLabel+' !!' : obLabel, cx, o.y - labelOvershoot - 6);
+      ctx.fillText(o.signature ? obLabel+' !!' : obLabel, cx, dy - labelOvershoot - 6);
     });
   }
 
@@ -2446,6 +2562,18 @@
     }
 
     drawWeather();
+
+    // Narasimha — Dusk Countdown: the scene visibly darkens toward true
+    // twilight as the timer runs out, building tension right up to the
+    // pillar-burst moment, echoing that he could only appear at dusk.
+    if(currentEra().avatar === 'narasimha' && eraDuration > 0){
+      const duskProgress = Math.min(1, eraElapsed / eraDuration);
+      const duskAlpha = duskProgress * 0.32;
+      if(duskAlpha > 0){
+        ctx.fillStyle = `rgba(5,5,15,${duskAlpha.toFixed(3)})`;
+        ctx.fillRect(0, 0, W, H);
+      }
+    }
 
     if(failMark){
       const elapsed = now - failMark.start;
