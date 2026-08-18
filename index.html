@@ -2550,6 +2550,33 @@
 
     // drawScenery(); // superseded by the painted background images (BG_THEMES)
     drawGround();
+
+    // Matsya — Rising Tide: a translucent water band climbs visibly up
+    // from the ground line as the flood rises through the level. This is
+    // the readable version of the effect — the obstacle-height growth in
+    // spawnObstacle() is real but gets mostly hidden behind the character
+    // sprite standing on each obstacle, so this full-width band (drawn
+    // behind everything, never obscured) is what actually communicates
+    // "the tide is rising" moment to moment.
+    if(currentEra().avatar === 'matsya' && eraDuration > 0){
+      const tideProgress = Math.min(1, eraElapsed / eraDuration);
+      const bandH = tideProgress * 30;
+      if(bandH > 0){
+        const waterTop = GROUND_Y + 34 - bandH;
+        const grad = ctx.createLinearGradient(0, waterTop, 0, GROUND_Y + 34);
+        grad.addColorStop(0, 'rgba(79,176,224,0.05)');
+        grad.addColorStop(1, 'rgba(45,120,170,0.45)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, waterTop, W, bandH);
+        ctx.strokeStyle = 'rgba(180,220,240,0.6)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(0, waterTop);
+        ctx.lineTo(W, waterTop);
+        ctx.stroke();
+      }
+    }
+
     drawParticles();
     if(state === 'playing'){
       drawObstacles();
