@@ -107,6 +107,20 @@
     color:#f7d774; opacity:.85;
   }
   #transitionOverlay p { margin-top:5px; font-size:clamp(12px,2.3vw,14px); color:#dce8e6; max-width:520px; line-height:1.5; }
+  #quizQuestion { font-size:clamp(13px,2.4vw,15px); color:#f2e9d8; font-weight:600; margin-top:4px; }
+  #quizOptions { display:flex; flex-direction:column; gap:8px; margin-top:10px; }
+  .quizOptBtn {
+    padding:9px 12px; border-radius:10px; border:1.5px solid #3a4f66;
+    background: rgba(22,35,61,.8); color:#e8dcc0; font-size:13px; text-align:left;
+    cursor:pointer; transition: border-color .15s, background .15s;
+  }
+  .quizOptBtn:active { transform: scale(.98); }
+  .quizOptBtn.correct { border-color:#8fe3c8; background:rgba(143,227,200,.18); color:#8fe3c8; }
+  .quizOptBtn.wrong { border-color:#e2807f; background:rgba(226,128,127,.18); color:#e2807f; }
+  .quizOptBtn.disabledOpt { pointer-events:none; opacity:.75; }
+  #quizFeedback { font-size:13px; font-weight:600; margin-top:8px; min-height:18px; }
+  #quizFeedback.correct { color:#8fe3c8; }
+  #quizFeedback.wrong { color:#e2807f; }
   #beginBtn {
     margin-top:20px; padding:10px 30px; border-radius:20px; border:2px solid #f7d774;
     background:#f7d774; color:#0a0f1e; font-weight:700; letter-spacing:.5px;
@@ -264,6 +278,10 @@
     #completeCheck { font-size:12px; }
     #transitionOverlay .tLabel { margin-top:5px; font-size:9px; }
     #transitionOverlay p { margin-top:2px; font-size:11px; line-height:1.3; }
+    #quizQuestion { font-size:11px; }
+    #quizOptions { gap:5px; margin-top:6px; }
+    .quizOptBtn { padding:5px 8px; font-size:10px; }
+    #quizFeedback { font-size:10px; margin-top:4px; min-height:12px; }
     #beginBtn { margin-top:6px; padding:5px 18px; font-size:12px; }
     #storyCaption { font-size:11px; padding:3px 10px; }
     #levelsCard { padding:12px 14px; }
@@ -313,6 +331,11 @@
       <img class="icon" id="tIcon" src="" alt="">
       <div class="tAvatarName" id="tAvatarName">Matsya</div>
       <h2 id="tEraName">The Great Flood</h2>
+      <div id="quizSection" style="display:none;">
+        <p id="quizQuestion"></p>
+        <div id="quizOptions"></div>
+        <p id="quizFeedback"></p>
+      </div>
       <div class="tLabel">What happened</div>
       <p id="tDeed">Matsya guided Manu's boat through a great flood to save all living beings.</p>
       <div class="tLabel">Fun fact</div>
@@ -781,7 +804,8 @@
       beats:[
         { at:0.22, en:'The waters are rising fast...', hi:'जल तेज़ी से बढ़ रहा है...' },
         { at:0.48, en:'Vasuki\u2019s coil holds the boat steady.', hi:'वासुकी की कुंडली नाव को स्थिर रखे हुए है।' },
-        { at:0.68, en:'The flood surges \u2014 hold your course!', hi:'बाढ़ उफान पर है — डटे रहो!' }
+        { at:0.68, en:'The flood surges \u2014 hold your course!', hi:'बाढ़ उफान पर है — डटे रहो!' },
+        { at:0.80, en:'Fact: In the earliest telling, Matsya isn\u2019t even called an avatar of Vishnu yet.', hi:'तथ्य: सबसे प्राचीन कथा में मत्स्य को अभी विष्णु का अवतार तक नहीं कहा गया था।' }
       ] },
     { avatar:'kurma', eraName:'Churning of the Ocean of Milk', eraNameHi:'समुद्र मंथन', obstacleType:'debris',
       deed:'Kurma held Mount Mandara steady on his back while gods and demons churned the cosmic ocean together to release Amrita, the nectar of immortality.',
@@ -791,7 +815,8 @@
       beats:[
         { at:0.22, en:'Mount Mandara trembles on his shell.', hi:'मंदराचल पर्वत उनके कवच पर काँप रहा है।' },
         { at:0.48, en:'Devas and asuras pull the great serpent rope.', hi:'देव और असुर विशाल सर्प-रस्सी खींच रहे हैं।' },
-        { at:0.68, en:'The ocean churns faster now.', hi:'अब सागर और तेज़ी से मथ रहा है।' }
+        { at:0.68, en:'The ocean churns faster now.', hi:'अब सागर और तेज़ी से मथ रहा है।' },
+        { at:0.80, en:'Fact: The churning also released a deadly poison that Shiva swallowed to save creation.', hi:'तथ्य: मंथन से निकले भयंकर विष को शिव ने सृष्टि बचाने हेतु पी लिया था।' }
       ] },
     { avatar:'varaha', eraName:'Lifting the Earth', eraNameHi:'पृथ्वी का उद्धार', obstacleType:'rootwall',
       deed:'Varaha dove to the bottom of the cosmic ocean and lifted the earth goddess Bhudevi safely on his tusks, after the demon Hiranyaksha had dragged her under.',
@@ -801,7 +826,8 @@
       beats:[
         { at:0.22, en:'The ocean floor stretches endlessly below.', hi:'नीचे सागर की तलहटी अनंत तक फैली है।' },
         { at:0.48, en:'Hiranyaksha\u2019s roar echoes through the deep.', hi:'हिरण्याक्ष की गर्जना गहराई में गूंजती है।' },
-        { at:0.68, en:'Bhudevi rests safely upon the tusks.', hi:'भूदेवी दाँतों पर सुरक्षित विराजमान हैं।' }
+        { at:0.68, en:'Bhudevi rests safely upon the tusks.', hi:'भूदेवी दाँतों पर सुरक्षित विराजमान हैं।' },
+        { at:0.80, en:'Fact: Some Puranas say his battle with Hiranyaksha lasted a thousand years.', hi:'तथ्य: कुछ पुराणों में हिरण्याक्ष से उनका युद्ध हज़ार वर्षों तक चला बताया गया है।' }
       ] },
     { avatar:'narasimha', eraName:'The Twilight Deliverance', eraNameHi:'संध्याकाल का उद्धार', obstacleType:'pillar',
       deed:'Narasimha burst from a stone pillar at twilight to destroy the demon king Hiranyakashipu, tearing him apart on a threshold, on his own lap, with his claws \u2014 satisfying every condition of a boon that had made the demon believe he could never be killed.',
@@ -811,7 +837,8 @@
       beats:[
         { at:0.22, en:'The pillar begins to glow as dusk falls...', hi:'संध्या होते ही स्तंभ चमकने लगता है...' },
         { at:0.48, en:'Prahlada\u2019s faith never wavers.', hi:'प्रह्लाद की श्रद्धा कभी नहीं डगमगाई।' },
-        { at:0.68, en:'The throne room shakes \u2014 the pillar is breaking!', hi:'राजसभा काँप उठी — स्तंभ टूट रहा है!' }
+        { at:0.68, en:'The throne room shakes \u2014 the pillar is breaking!', hi:'राजसभा काँप उठी — स्तंभ टूट रहा है!' },
+        { at:0.80, en:'Fact: He killed Hiranyakashipu at twilight, on a threshold, with claws \u2014 a loophole in every rule of the boon.', hi:'तथ्य: उन्होंने हिरण्यकशिपु को संध्या में, देहरी पर, नाखूनों से मारा — वरदान की हर शर्त की एक चतुर काट।' }
       ] },
     { avatar:'vamana', eraName:'The Three Strides', eraNameHi:'तीन डग', obstacleType:'stepgap',
       deed:'Vamana, a humble dwarf Brahmin, asked the generous demon king Bali for just three paces of land, then grew to a cosmic form as Trivikrama, covering the earth and the heavens in two strides before gently placing his third step on Bali\u2019s head.',
@@ -821,7 +848,8 @@
       beats:[
         { at:0.22, en:'A humble boy steps into King Bali\u2019s court...', hi:'एक विनम्र बालक राजा बलि की सभा में प्रवेश करता है...' },
         { at:0.48, en:'Two strides span the earth and sky!', hi:'दो डगों में पृथ्वी और आकाश नप गए!' },
-        { at:0.68, en:'One stride remains \u2014 where will it land?', hi:'एक डग शेष है — वह कहाँ पड़ेगा?' }
+        { at:0.68, en:'One stride remains \u2014 where will it land?', hi:'एक डग शेष है — वह कहाँ पड़ेगा?' },
+        { at:0.80, en:'Fact: Bali is still honored every year in Kerala\u2019s Onam festival for his generosity.', hi:'तथ्य: बलि की उदारता के सम्मान में आज भी केरल में हर वर्ष ओणम मनाया जाता है।' }
       ] },
     { avatar:'parashurama', eraName:'The Twenty-One Conquests', eraNameHi:'इक्कीस विजय', obstacleType:'royalbarrier',
       deed:'Wielding a divine axe gifted by Shiva, the warrior-sage Parashurama cleansed the earth of tyrannical, oppressive Kshatriya rulers twenty-one times over, restoring dharma each time before returning to a life of penance.',
@@ -831,7 +859,8 @@
       beats:[
         { at:0.22, en:'Fallen thrones litter the battlefield...', hi:'रणभूमि में गिरे हुए सिंहासन बिखरे पड़े हैं...' },
         { at:0.48, en:'The axe gleams with Shiva\u2019s blessing.', hi:'फरसा शिव के आशीर्वाद से चमक उठता है।' },
-        { at:0.68, en:'One last tyrant stands in the way!', hi:'एक अंतिम अत्याचारी शेष है!' }
+        { at:0.68, en:'One last tyrant stands in the way!', hi:'एक अंतिम अत्याचारी शेष है!' },
+        { at:0.80, en:'Fact: Some Puranas credit him with reclaiming the Konkan coast from the sea.', hi:'तथ्य: कुछ पुराणों में उन्हें कोंकण तट को समुद्र से वापस पाने का श्रेय भी दिया जाता है।' }
       ] },
     { avatar:'rama', eraName:'The Bridge to Lanka', eraNameHi:'लंका का सेतु', obstacleType:'bridgegap',
       deed:'Exiled to the forest for fourteen years, Rama gathered an army of vanaras who built a bridge of floating stones across the ocean, allowing him to reach Lanka and rescue Sita from the demon king Ravana.',
@@ -841,7 +870,8 @@
       beats:[
         { at:0.22, en:'Fourteen years of exile begin...', hi:'चौदह वर्षों का वनवास आरंभ होता है...' },
         { at:0.48, en:'The vanara army raises a bridge of stone!', hi:'वानर सेना पत्थरों का सेतु खड़ा कर रही है!' },
-        { at:0.68, en:'Lanka\u2019s shores draw near.', hi:'लंका के तट निकट आ रहे हैं।' }
+        { at:0.68, en:'Lanka\u2019s shores draw near.', hi:'लंका के तट निकट आ रहे हैं।' },
+        { at:0.80, en:'Fact: The bridge\u2019s stones are said to have floated because Rama\u2019s name was written on them.', hi:'तथ्य: कहा जाता है कि सेतु के पत्थर इसलिए तैरे क्योंकि उन पर राम का नाम लिखा था।' }
       ] },
     { avatar:'krishna', eraName:'The Hill on a Fingertip', eraNameHi:'उँगली पर पर्वत', obstacleType:'stormgap',
       deed:'When the proud god Indra unleashed torrential storms to punish Vrindavan for abandoning his worship, young Krishna lifted the entire Govardhan Hill on the tip of his little finger, sheltering every villager and animal beneath it for seven days and nights.',
@@ -851,7 +881,8 @@
       beats:[
         { at:0.22, en:'Storm clouds gather over Vrindavan...', hi:'वृंदावन पर तूफानी बादल घिर आए हैं...' },
         { at:0.48, en:'The hill rises on a single fingertip!', hi:'पर्वत एक उँगली पर उठ खड़ा हुआ!' },
-        { at:0.68, en:'Indra\u2019s fury reaches its peak.', hi:'इंद्र का क्रोध चरम पर पहुँच गया है।' }
+        { at:0.68, en:'Indra\u2019s fury reaches its peak.', hi:'इंद्र का क्रोध चरम पर पहुँच गया है।' },
+        { at:0.80, en:'Fact: Govardhan Puja, the day after Diwali, still reenacts this event with a mountain of food offerings.', hi:'तथ्य: दीवाली के अगले दिन गोवर्धन पूजा में आज भी अन्नकूट के रूप में यह घटना दोहराई जाती है।' }
       ] },
     { avatar:'buddha', eraName:'Beneath the Bodhi Tree', eraNameHi:'बोधि वृक्ष के नीचे', obstacleType:'marabarrier',
       deed:'Prince Siddhartha renounced his royal life and, after years of deep meditation beneath the Bodhi tree, resisted the demon Mara\u2019s armies of fear, temptation, and illusion to attain enlightenment, becoming the Buddha.',
@@ -861,7 +892,8 @@
       beats:[
         { at:0.22, en:'The Bodhi tree\u2019s shade grows still...', hi:'बोधि वृक्ष की छाया शांत हो रही है...' },
         { at:0.48, en:'Mara\u2019s illusions surge forward!', hi:'मार की माया आगे बढ़ रही है!' },
-        { at:0.68, en:'Dawn nears \u2014 enlightenment is close.', hi:'भोर निकट है — बोधि की प्राप्ति समीप है।' }
+        { at:0.68, en:'Dawn nears \u2014 enlightenment is close.', hi:'भोर निकट है — बोधि की प्राप्ति समीप है।' },
+        { at:0.80, en:'Fact: In Vaishnavite tradition, Buddha is honored as one of Vishnu\u2019s ten avatars.', hi:'तथ्य: वैष्णव परंपरा में बुद्ध को विष्णु के दस अवतारों में से एक माना जाता है।' }
       ] },
     { avatar:'kalki', eraName:'The Final Dawn', eraNameHi:'अंतिम उषा', obstacleType:'darkgap',
       deed:'At the end of the Kali Yuga, when darkness and corruption consume the world, Kalki will descend on a white horse, wielding a blazing sword, to vanquish evil and restore dharma \u2014 ushering in a new age, the Satya Yuga.',
@@ -871,7 +903,8 @@
       beats:[
         { at:0.22, en:'The age of darkness nears its end...', hi:'अंधकार युग अपने अंत के निकट है...' },
         { at:0.48, en:'The white horse charges through chaos!', hi:'श्वेत अश्व अराजकता को चीरता हुआ आगे बढ़ता है!' },
-        { at:0.68, en:'One final blow will restore dharma.', hi:'एक अंतिम प्रहार धर्म को पुनर्स्थापित करेगा।' }
+        { at:0.68, en:'One final blow will restore dharma.', hi:'एक अंतिम प्रहार धर्म को पुनर्स्थापित करेगा।' },
+        { at:0.80, en:'Fact: Kalki is the only Dashavatara avatar yet to appear \u2014 a prophecy still to come.', hi:'तथ्य: कल्कि दशावतार के एकमात्र अवतार हैं जो अभी प्रकट नहीं हुए — यह भविष्यवाणी अभी शेष है।' }
       ] }
   ];
 
@@ -899,6 +932,35 @@
       hi:'इसीलिए, इस रूप में, आप मार की माया के बीच ध्यान करते हैं — जैसे उन्होंने बोधि वृक्ष के नीचे भय और प्रलोभन के विरुद्ध शांति पाई थी।' },
     kalki: { en:'That\u2019s why, in this form, you strike down the encroaching darkness \u2014 echoing the blazing sword that will end the Kali Yuga and begin a new age.',
       hi:'इसीलिए, इस रूप में, आप बढ़ते अंधकार का नाश करते हैं — जैसे उनकी प्रज्ज्वलित तलवार कलियुग का अंत कर नए युग का आरंभ करेगी।' }
+  };
+
+  // End-of-level quiz — one 4-option question per avatar, testing something
+  // from that era's own story captions/deed, shown on the level-complete
+  // declaration screen. Purely educational: no gameplay reward or penalty,
+  // just correct/incorrect feedback.
+  const QUIZ_DATA = {
+    matsya: { q:'Who did Matsya guide safely through the great flood?', qHi:'मत्स्य ने महाप्रलय में किसे सुरक्षित मार्ग दिखाया?',
+      options:['Manu','Rama','Arjuna','Bali'], optionsHi:['मनु','राम','अर्जुन','बलि'], correct:0 },
+    kurma: { q:'What mountain did Kurma support on his back during the churning?', qHi:'मंथन के दौरान कूर्म ने अपनी पीठ पर कौन सा पर्वत सहा?',
+      options:['Govardhan','Kailash','Mandara','Meru'], optionsHi:['गोवर्धन','कैलाश','मंदराचल','मेरु'], correct:2 },
+    varaha: { q:'Where did Varaha carry the earth goddess to safety?', qHi:'वराह ने पृथ्वी देवी को कहाँ सुरक्षित उठाया?',
+      options:['On his back','In his mouth','On his horns','On his tusks'], optionsHi:['अपनी पीठ पर','अपने मुँह में','अपने सींगों पर','अपने दाँतों पर'], correct:3 },
+    narasimha: { q:'How did Narasimha kill Hiranyakashipu, honoring every condition of his boon?', qHi:'नरसिंह ने हिरण्यकशिपु का वध वरदान की हर शर्त निभाते हुए कैसे किया?',
+      options:['At noon, in a forest, with a sword','At twilight, on a threshold, with claws','At midnight, in the sky, with fire','At dawn, in the ocean, with a trident'],
+      optionsHi:['दोपहर में, वन में, तलवार से','संध्या में, देहरी पर, नाखूनों से','मध्यरात्रि में, आकाश में, अग्नि से','भोर में, सागर में, त्रिशूल से'], correct:1 },
+    vamana: { q:'How many steps of land did Vamana ask King Bali for?', qHi:'वामन ने राजा बलि से कितने पग भूमि माँगी?',
+      options:['Five','Seven','Three','One'], optionsHi:['पाँच','सात','तीन','एक'], correct:2 },
+    parashurama: { q:'How many times did Parashurama cleanse the earth of tyrannical rulers?', qHi:'परशुराम ने कितनी बार पृथ्वी को अत्याचारी शासकों से मुक्त किया?',
+      options:['Twenty-one','Ten','Three','A hundred'], optionsHi:['इक्कीस','दस','तीन','सौ'], correct:0 },
+    rama: { q:'Who helped Rama build the bridge to Lanka?', qHi:'लंका तक सेतु बनाने में राम की सहायता किसने की?',
+      options:['The devas','The vanara army','Ravana\u2019s soldiers','Kurma\u2019s family'], optionsHi:['देवताओं ने','वानर सेना','रावण के सैनिकों ने','कूर्म के परिवार ने'], correct:1 },
+    krishna: { q:'How did young Krishna shelter Vrindavan from Indra\u2019s storm?', qHi:'बाल कृष्ण ने इंद्र के तूफान से वृंदावन की रक्षा कैसे की?',
+      options:['Built a stone wall','Called down the sun','Flew everyone to safety','Lifted Govardhan Hill on his fingertip'],
+      optionsHi:['पत्थर की दीवार बनाकर','सूर्य को बुलाकर','सबको उड़ाकर सुरक्षित स्थान पर ले जाकर','गोवर्धन पर्वत को उँगली पर उठाकर'], correct:3 },
+    buddha: { q:'Under which tree did Siddhartha attain enlightenment?', qHi:'सिद्धार्थ को किस वृक्ष के नीचे बोधि प्राप्त हुई?',
+      options:['The banyan tree','The mango tree','The Bodhi tree','The neem tree'], optionsHi:['बरगद वृक्ष','आम वृक्ष','बोधि वृक्ष','नीम वृक्ष'], correct:2 },
+    kalki: { q:'What does Kalki ride at the end of the Kali Yuga?', qHi:'कल्कि कलियुग के अंत में किस पर सवार होंगे?',
+      options:['A golden chariot','A white horse','An elephant','A flying eagle'], optionsHi:['स्वर्ण रथ','श्वेत अश्व','हाथी','उड़ता गरुड़'], correct:1 }
   };
 
   const ERA_BASE_DURATION = 26000; // ms, first cycle
@@ -1254,6 +1316,7 @@
     beginBtn.textContent = t().begin;
 
     document.getElementById('completeBanner').style.display = 'none';
+    document.getElementById('quizSection').style.display = 'none';
   }
 
   // showLevelComplete — a dedicated pause screen announcing that the avatar
@@ -1294,7 +1357,61 @@
       : `${doneName} complete! ${praise}`) + ' \u2014 ' + t().distance(Math.floor(distance));
     completeBanner.style.display = 'inline-flex';
 
+    renderQuiz(lastCompletedAvatar);
+
     beginBtn.textContent = t().continueLabel;
+  }
+
+  const quizSection = document.getElementById('quizSection');
+  const quizQuestionEl = document.getElementById('quizQuestion');
+  const quizOptionsEl = document.getElementById('quizOptions');
+  const quizFeedbackEl = document.getElementById('quizFeedback');
+
+  // renderQuiz(avatarKey) — builds a fresh set of 4 answer buttons for that
+  // avatar's question. Purely educational: picking an answer just reveals
+  // correct/incorrect with a short note, no effect on score or the run.
+  function renderQuiz(avatarKey){
+    const quiz = QUIZ_DATA[avatarKey];
+    if(!quiz){ quizSection.style.display = 'none'; return; }
+    quizSection.style.display = '';
+    quizQuestionEl.textContent = currentLang === 'hi' ? quiz.qHi : quiz.q;
+    quizFeedbackEl.textContent = '';
+    quizFeedbackEl.className = '';
+    quizOptionsEl.innerHTML = '';
+
+    const opts = currentLang === 'hi' ? quiz.optionsHi : quiz.options;
+    opts.forEach((optText, i)=>{
+      const btn = document.createElement('div');
+      btn.className = 'quizOptBtn';
+      btn.textContent = optText;
+      btn.addEventListener('pointerdown', (e)=>{
+        e.stopPropagation();
+        answerQuiz(avatarKey, i);
+      });
+      quizOptionsEl.appendChild(btn);
+    });
+  }
+
+  function answerQuiz(avatarKey, chosenIdx){
+    const quiz = QUIZ_DATA[avatarKey];
+    if(!quiz) return;
+    const btns = quizOptionsEl.querySelectorAll('.quizOptBtn');
+    // already answered — ignore further taps
+    if(btns[0] && btns[0].classList.contains('disabledOpt')) return;
+
+    btns.forEach((btn, i)=>{
+      btn.classList.add('disabledOpt');
+      if(i === quiz.correct) btn.classList.add('correct');
+      else if(i === chosenIdx) btn.classList.add('wrong');
+    });
+
+    const isRight = chosenIdx === quiz.correct;
+    quizFeedbackEl.textContent = isRight
+      ? (currentLang === 'hi' ? 'सही उत्तर!' : 'Correct!')
+      : (currentLang === 'hi'
+          ? `सही उत्तर था: ${quiz.optionsHi[quiz.correct]}`
+          : `The answer was: ${quiz.options[quiz.correct]}`);
+    quizFeedbackEl.className = isRight ? 'correct' : 'wrong';
   }
 
   // proceedToNextEraIntro — called when the player taps Continue on the
